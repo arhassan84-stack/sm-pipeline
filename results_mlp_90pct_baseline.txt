@@ -1,0 +1,8 @@
+Task: mlp_90pct_baseline
+Architecture: 512-256-128  max_iter=500  early_stopping=True
+Train size: 85698  Test size: 9502
+Iterations run: 41
+
+Train  R²=0.9159  MAE=0.2766  MAPE=14.6%
+Test   R²=0.8980  MAE=0.2941  MAPE=15.9%
+Runtime: 1642.6s
