@@ -1,0 +1,28 @@
+# Large simulation / cache / model files
+*.npy
+*.npz
+*.pt
+*.pth
+
+# Simulation output directories
+sims_*/
+cache_*/
+
+# Experiments directory (user data)
+experiments/
+
+# GUI session state and experiment registry
+gui_config.json
+registry.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Internal notes
+plot_aesthetics.md
+
+# macOS
+.DS_Store
