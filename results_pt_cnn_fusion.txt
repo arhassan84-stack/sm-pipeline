@@ -1,0 +1,10 @@
+Task: pt_cnn_fusion
+Architecture: CNN (4096 raw trace) + FC (207 features) → fusion head
+Optimizer: AdamW  lr=0.0005  weight_decay=0.0001
+Batch size: 256  Max epochs: 150  Early stopping patience: 20
+Device: cuda  Params: 569,889
+Train size: 47600  Test size: 4766
+
+Train  R²=0.9421  MAE=0.2238  MAPE=11.7%
+Test   R²=0.9054  MAE=0.2957  MAPE=14.9%
+Runtime: 61.0s

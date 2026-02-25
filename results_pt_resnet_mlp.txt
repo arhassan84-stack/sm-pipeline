@@ -1,0 +1,11 @@
+Task: pt_resnet_mlp
+Architecture: ResNet-MLP  dim=512  n_blocks=6
+Optimizer: AdamW  lr=0.001  weight_decay=0.0001
+Scheduler: ReduceLROnPlateau  factor=0.5  patience=10
+Batch size: 512  Max epochs: 300  Early stopping patience: 30
+Device: cuda  Params: 3,272,193
+Train size: 85698  Test size: 9502
+
+Train  R²=0.9381  MAE=0.2355  MAPE=12.7%
+Test   R²=0.9088  MAE=0.2795  MAPE=15.6%
+Runtime: 93.2s

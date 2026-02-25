@@ -1,0 +1,10 @@
+Task: pt_weighted_loss
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15) + 1/d weighted MSE
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,221,249
+Train: 85698  Test: 9502
+
+Train  R²=0.8975  MAE=0.3033  MAPE=14.5%
+Test   R²=0.8887  MAE=0.3062  MAPE=15.4%
+Runtime: 167.3s

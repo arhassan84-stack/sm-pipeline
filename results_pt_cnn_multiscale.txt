@@ -1,0 +1,10 @@
+Task: pt_cnn_multiscale
+Architecture: MultiScale-CNN (fine k=8 + medium k=32 + coarse k=128) + FC(207) → head
+Optimizer: AdamW lr=0.0005 wd=0.0001  Scheduler: ReduceLROnPlateau
+Batch: 256  MaxEpochs: 200  Patience: 25
+Device: cuda  Params: 464,225
+Train: 47600  Test: 4766
+
+Train  R²=0.9374  MAE=0.2353  MAPE=13.1%
+Test   R²=0.9174  MAE=0.2753  MAPE=14.7%
+Runtime: 174.5s

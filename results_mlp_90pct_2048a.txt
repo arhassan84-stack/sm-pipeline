@@ -1,0 +1,8 @@
+Task: mlp_90pct_2048a
+Architecture: 2048-1024-512-256  max_iter=2000  lr=5e-4  tol=1e-5  n_iter_no_change=50
+Train size: 85698  Test size: 9502
+Iterations run: 78
+
+Train  R²=0.9254  MAE=0.2569  MAPE=13.9%
+Test   R²=0.9066  MAE=0.2865  MAPE=16.1%
+Runtime: 4164.7s

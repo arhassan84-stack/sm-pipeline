@@ -1,0 +1,10 @@
+Task: pt_transformer
+Architecture: Transformer (64 patches × 64pts, d=128, heads=4, layers=4) + FC(207)
+Optimizer: AdamW lr=0.0003 wd=0.0001  Scheduler: ReduceLROnPlateau
+Batch: 256  MaxEpochs: 200  Patience: 25
+Device: cuda  Params: 662,209
+Train: 47600  Test: 4766
+
+Train  R²=0.9227  MAE=0.2680  MAPE=14.5%
+Test   R²=0.9039  MAE=0.2998  MAPE=15.9%
+Runtime: 141.6s

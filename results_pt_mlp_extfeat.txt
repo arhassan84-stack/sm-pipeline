@@ -1,0 +1,10 @@
+Task: pt_mlp_extfeat
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15)  Features: 269
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,348,225
+Train: 47600  Test: 4766
+
+Train  R²=0.9364  MAE=0.2418  MAPE=13.5%
+Test   R²=0.9138  MAE=0.2849  MAPE=15.4%
+Runtime: 35.1s
