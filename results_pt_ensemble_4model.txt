@@ -1,0 +1,31 @@
+Task: pt_ensemble_4model
+HistGBR params: max_iter=800, max_depth=5, lr=0.08, min_samples_leaf=80, max_leaf_nodes=127
+Features: 283  Train: 85698  Test: 9502
+
+Individual Test results:
+  HistGBR (283f):  R²=0.9115  MAPE=16.1%
+  MLP cosine:      R²=0.9143   MAPE=14.6%
+  ResNet cosine:   R²=0.9142   MAPE=14.7%
+  CNN 90pct:       R²=0.9084   MAPE=14.3%
+
+3-NN (mlp+resnet+cnn):
+  Overall: R²=0.9155  MAE=0.2681  MAPE=14.1%
+  d <  1  ( 6397): R²=0.9308  MAPE=11.3%
+  d >= 1  ( 3105): R²=0.7975  MAPE=19.7%
+
+4-model (hgbr+mlp+resnet+cnn):
+  Overall: R²=0.9167  MAE=0.2676  MAPE=14.2%
+  d <  1  ( 6397): R²=0.9289  MAPE=11.5%
+  d >= 1  ( 3105): R²=0.8005  MAPE=19.7%
+
+2-model (hgbr+cnn):
+  Overall: R²=0.9143  MAE=0.2715  MAPE=14.5%
+  d <  1  ( 6397): R²=0.9264  MAPE=11.8%
+  d >= 1  ( 3105): R²=0.7948  MAPE=19.9%
+
+2-model (hgbr+mlp):
+  Overall: R²=0.9159  MAE=0.2723  MAPE=14.9%
+  d <  1  ( 6397): R²=0.9194  MAPE=12.3%
+  d >= 1  ( 3105): R²=0.7988  MAPE=20.2%
+
+Runtime: 8.2s

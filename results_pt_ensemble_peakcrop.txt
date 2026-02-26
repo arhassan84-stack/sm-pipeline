@@ -1,0 +1,31 @@
+Task: pt_ensemble_peakcrop
+Peak-crop window: 512 pts
+Features: 302  Test: 9502
+
+Individual Test results:
+  MLP cosine:   MAPE=14.8%
+  ResNet cosine: MAPE=14.9%
+  CNN full:     MAPE=14.4%
+  CNN peak-crop: MAPE=15.7%
+
+3-NN (mlp+resnet+cnn):
+  Overall: R²=0.9151  MAE=0.2696  MAPE=14.2%
+  d <  1  ( 6397): R²=0.9283  MAPE=11.4%
+  d >= 1  ( 3105): R²=0.7967  MAPE=20.0%
+
+3-NN+crop (mlp+resnet+cnn+crop):
+  Overall: R²=0.9149  MAE=0.2694  MAPE=14.3%
+  d <  1  ( 6397): R²=0.9319  MAPE=11.6%
+  d >= 1  ( 3105): R²=0.7962  MAPE=19.8%
+
+crop only:
+  Overall: R²=0.9012  MAE=0.2898  MAPE=15.7%
+  d <  1  ( 6397): R²=0.9283  MAPE=13.0%
+  d >= 1  ( 3105): R²=0.7631  MAPE=21.3%
+
+3-NN swap (mlp+resnet+crop):
+  Overall: R²=0.9132  MAE=0.2726  MAPE=14.7%
+  d <  1  ( 6397): R²=0.9292  MAPE=12.0%
+  d >= 1  ( 3105): R²=0.7921  MAPE=20.0%
+
+Runtime: 0.9s

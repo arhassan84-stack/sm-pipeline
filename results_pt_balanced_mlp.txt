@@ -1,0 +1,12 @@
+Task: pt_balanced_mlp
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15)
+Balancing: d<1 downsampled to 28595 = d>=1 count (total 57190)
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,221,249
+
+Train  R²=0.9211  MAE=0.3575  MAPE=14.3%
+Test   R²=0.9137  MAE=0.2772  MAPE=15.4%
+  d <  1  ( 6397 samples): R²=0.9006  MAPE=12.9%
+  d >= 1  ( 3105 samples): R²=0.7937  MAPE=20.5%
+Runtime: 63.7s

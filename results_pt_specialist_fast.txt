@@ -1,0 +1,12 @@
+Task: pt_specialist_fast
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15)
+Training filter: d >= 0.5  Train samples: 37211
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,221,249
+
+Train  R²=0.8831  MAE=0.5384  MAPE=16.1%
+Test (full, d<=10)  R²=0.9117  MAE=0.3393  MAPE=125.7%
+  d < 1    ( 6397 samples): R²=0.5775  MAPE=176.6%
+  d >= 1   ( 3105 samples): R²=0.7957  MAPE=20.7%
+Runtime: 26.0s

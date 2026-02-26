@@ -1,0 +1,10 @@
+Task: pt_cnn_90pct
+Architecture: CNN (90k traces) + FC (207 features) → fusion head
+Optimizer: AdamW lr=0.0005 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=30
+Batch: 256  MaxEpochs: 200  Patience: 25
+Device: cuda  Params: 608,801
+Train: 85698  Test: 9502
+
+Train  R²=0.9368  MAE=0.2360  MAPE=12.2%
+Test   R²=0.9068  MAE=0.2769  MAPE=14.2%
+Runtime: 125.7s

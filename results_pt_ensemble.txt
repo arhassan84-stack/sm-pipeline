@@ -1,0 +1,11 @@
+Task: pt_ensemble
+Components: mlp_cosine + resnet_cosine + cnn_90pct (geometric mean of predictions)
+Test: 9502
+
+Individual Test MAPEs:
+  mlp_cosine:    MAPE=14.6%
+  resnet_cosine: MAPE=14.7%
+  cnn_90pct:     MAPE=14.2%
+
+Ensemble Test R²=0.9143  MAE=0.2686  MAPE=13.9%
+Runtime: 0.7s

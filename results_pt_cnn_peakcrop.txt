@@ -1,0 +1,8 @@
+Task: pt_cnn_peakcrop
+Crop: peak-centered W=512
+Features: 302  Train: 85698  Test: 9502
+
+Test R²=0.9012  MAE=0.2898  MAPE=15.7%
+  d <1  ( 6397): R²=0.9283  MAPE=13.0%
+  d>=1  ( 3105): R²=0.7631  MAPE=21.3%
+Runtime: 52.3s

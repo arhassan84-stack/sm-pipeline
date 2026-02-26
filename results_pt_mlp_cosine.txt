@@ -1,0 +1,10 @@
+Task: pt_mlp_cosine
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15)
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,376,897
+Train: 85698  Test: 9502
+
+Train  R²=0.9277  MAE=0.2580  MAPE=13.6%
+Test   R²=0.9131  MAE=0.2739  MAPE=14.6%
+Runtime: 58.1s

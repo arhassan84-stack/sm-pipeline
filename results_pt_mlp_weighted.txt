@@ -1,0 +1,12 @@
+Task: pt_mlp_weighted
+Architecture: 2048-1024-512-256-128 + BN + Dropout(0.15)
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Loss: weighted MSE  fast_weight=2.0 (d>=1)
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,415,809  Features: 302
+Train: 85698  Test: 9502
+
+Test R²=0.9098  MAE=0.2783  MAPE=15.1%
+  d <1  ( 6397): R²=0.8968  MAPE=12.7%
+  d>=1  ( 3105): R²=0.7846  MAPE=20.0%
+Runtime: 78.8s

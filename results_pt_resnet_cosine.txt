@@ -1,0 +1,10 @@
+Task: pt_resnet_cosine
+Architecture: ResNet-MLP dim=512 blocks=6
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,311,105
+Train: 85698  Test: 9502
+
+Train  R²=0.9256  MAE=0.2614  MAPE=13.7%
+Test   R²=0.9122  MAE=0.2750  MAPE=14.7%
+Runtime: 68.8s

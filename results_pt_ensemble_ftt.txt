@@ -1,0 +1,40 @@
+Task: pt_ensemble_ftt
+Features: 283  Test: 9502
+
+Individual results:
+  MLP cosine:    MAPE=14.6%  R²=0.9131
+  ResNet cosine: MAPE=14.7%  R²=0.9122
+  CNN 90pct:     MAPE=14.2%  R²=0.9068
+  FT-Transformer:MAPE=14.7%  R²=0.9196
+
+3-NN (mlp+resnet+cnn):
+  Overall: R²=0.9143  MAE=0.2686  MAPE=13.9%
+  d <  1  ( 6397): R²=0.9333  MAPE=11.2%
+  d >= 1  ( 3105): R²=0.7945  MAPE=19.5%
+
+FTT only:
+  Overall: R²=0.9196  MAE=0.2656  MAPE=14.7%
+  d <  1  ( 6397): R²=0.9223  MAPE=12.1%
+  d >= 1  ( 3105): R²=0.8076  MAPE=20.1%
+
+4-model (mlp+resnet+cnn+ftt):
+  Overall: R²=0.9172  MAE=0.2653  MAPE=13.9%
+  d <  1  ( 6397): R²=0.9324  MAPE=11.2%
+  d >= 1  ( 3105): R²=0.8016  MAPE=19.4%
+
+3-model swap: mlp+resnet+ftt:
+  Overall: R²=0.9171  MAE=0.2681  MAPE=14.4%
+  d <  1  ( 6397): R²=0.9263  MAPE=11.8%
+  d >= 1  ( 3105): R²=0.8014  MAPE=19.9%
+
+3-model swap: mlp+cnn+ftt:
+  Overall: R²=0.9179  MAE=0.2640  MAPE=13.8%
+  d <  1  ( 6397): R²=0.9320  MAPE=11.1%
+  d >= 1  ( 3105): R²=0.8033  MAPE=19.3%
+
+3-model swap: resnet+cnn+ftt:
+  Overall: R²=0.9177  MAE=0.2640  MAPE=13.8%
+  d <  1  ( 6397): R²=0.9350  MAPE=11.1%
+  d >= 1  ( 3105): R²=0.8028  MAPE=19.3%
+
+Runtime: 2.1s

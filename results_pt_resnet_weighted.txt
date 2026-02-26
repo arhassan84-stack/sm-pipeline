@@ -1,0 +1,12 @@
+Task: pt_resnet_weighted
+Architecture: ResNet-MLP dim=512 blocks=6
+Optimizer: AdamW lr=0.002 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Loss: weighted MSE  fast_weight=2.0 (d>=1)
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 3,320,833  Features: 302
+Train: 85698  Test: 9502
+
+Test R²=0.9097  MAE=0.2779  MAPE=15.0%
+  d <1  ( 6397): R²=0.9046  MAPE=12.5%
+  d>=1  ( 3105): R²=0.7842  MAPE=20.3%
+Runtime: 93.4s

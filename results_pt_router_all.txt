@@ -1,0 +1,25 @@
+Task: pt_router_all
+Runtime: 21.6s
+Router accuracy (learned, threshold=0.5): 97.33%
+Router accuracy (physical lag):  93.80%
+Router accuracy (general model): 97.68%
+
+Baseline: MLP cosine (no routing)
+  Overall   ( 9502): R²=0.9118  MAE=0.2781  MAPE=14.8%
+  d <  1    ( 6397): R²=0.9231  MAE=0.0304  MAPE=12.0%
+  d >= 1    ( 3105): R²=0.7887  MAE=0.7883  MAPE=20.5%
+
+Option A+D (soft gating)
+  Overall   ( 9502): R²=0.9146  MAE=0.2752  MAPE=14.9%
+  d <  1    ( 6397): R²=0.9251  MAE=0.0304  MAPE=12.1%
+  d >= 1    ( 3105): R²=0.7954  MAE=0.7795  MAPE=20.6%
+
+Option B (physical lag threshold)
+  Overall   ( 9502): R²=0.9138  MAE=0.2777  MAPE=15.0%
+  d <  1    ( 6397): R²=0.9236  MAE=0.0307  MAPE=12.1%
+  d >= 1    ( 3105): R²=0.7936  MAE=0.7867  MAPE=21.0%
+
+Option C (general model router)
+  Overall   ( 9502): R²=0.9146  MAE=0.2752  MAPE=14.9%
+  d <  1    ( 6397): R²=0.9202  MAE=0.0308  MAPE=12.1%
+  d >= 1    ( 3105): R²=0.7957  MAE=0.7787  MAPE=20.7%

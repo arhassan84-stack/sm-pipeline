@@ -1,0 +1,11 @@
+Task: pt_fttransformer
+Architecture: FT-Transformer E=64 heads=8 layers=4 dim_ff=256
+Optimizer: AdamW lr=0.001 wd=0.0001  Scheduler: CosineAnnealingWarmRestarts T0=50
+Batch: 1024  MaxEpochs: 500  Patience: 40
+Device: cuda  Params: 236,417  Features: 283
+Train: 85698  Test: 9502
+
+Test R²=0.9196  MAE=0.2656  MAPE=14.7%
+  d <1  ( 6397): R²=0.9223  MAPE=12.1%
+  d>=1  ( 3105): R²=0.8076  MAPE=20.1%
+Runtime: 2900.1s

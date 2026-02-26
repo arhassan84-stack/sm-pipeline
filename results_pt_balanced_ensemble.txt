@@ -1,0 +1,19 @@
+Task: pt_balanced_ensemble
+Components: balanced_mlp + balanced_resnet + cnn_90pct (geometric mean)
+Test: 9502
+
+Individual Test MAPEs:
+  balanced_mlp:    MAPE=15.4%
+  balanced_resnet: MAPE=15.2%
+  cnn_90pct:       MAPE=14.6%
+
+2-model ensemble (balanced_mlp + balanced_resnet):
+  Overall: R²=0.9147  MAE=0.2751  MAPE=15.1%
+  d <  1  ( 6397): R²=0.9036  MAPE=12.5%
+  d >= 1  ( 3105): R²=0.7961  MAPE=20.4%
+
+3-model ensemble (+ original CNN 90pct):
+  Overall: R²=0.9167  MAE=0.2690  MAPE=14.4%
+  d <  1  ( 6397): R²=0.9154  MAPE=11.7%
+  d >= 1  ( 3105): R²=0.8007  MAPE=20.0%
+Runtime: 1.1s
