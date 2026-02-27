@@ -1,0 +1,6 @@
+Task: pt_cnn_s777
+Seed: 777
+Test R²=0.9088  MAE=0.2775  MAPE=14.3%
+  d <1  ( 6397): R²=0.9277  MAPE=11.2%
+  d>=1  ( 3105): R²=0.7814  MAPE=20.6%
+Runtime: 118.4s

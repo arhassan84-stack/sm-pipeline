@@ -1,0 +1,7 @@
+Task: pt_cnn_multiscale_90k
+Architecture: Multi-scale CNN (k=8,32,128) + feature branch (283f) → fusion
+Params: 409,569
+Test R²=0.9051  MAE=0.2805  MAPE=14.3%
+  d <1  ( 6397): R²=0.9320  MAPE=11.3%
+  d>=1  ( 3105): R²=0.7725  MAPE=20.3%
+Runtime: 228.6s

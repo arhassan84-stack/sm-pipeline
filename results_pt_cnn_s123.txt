@@ -1,0 +1,6 @@
+Task: pt_cnn_s123
+Seed: 123
+Test R²=0.9104  MAE=0.2759  MAPE=14.1%
+  d <1  ( 6397): R²=0.9289  MAPE=11.0%
+  d>=1  ( 3105): R²=0.7853  MAPE=20.4%
+Runtime: 128.6s

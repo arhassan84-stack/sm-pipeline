@@ -1,0 +1,107 @@
+======================================================================
+ENSEMBLE WEIGHT OPTIMIZATION
+======================================================================
+
+── mlp+cnn+ftt ──────────────────────────────────────
+Equal weights (1/3 each):
+  Train MAPE=12.66%  Test MAPE=13.81%  R²=0.9179
+  d <1  ( 6397): R²=0.9320  MAPE=11.1%
+  d>=1  ( 3105): R²=0.8033  MAPE=19.3%
+
+Minimize overall MAPE:
+  Weights: mlp=0.101  cnn=0.802  ftt=0.098
+  Train MAPE=12.09%  Test MAPE=13.83%  R²=0.9114  MAE=0.2704
+  d <1  ( 6397): R²=0.9343  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7877  MAPE=19.5%
+
+Minimize d>=1-focused MAPE (2x weight):
+  Weights: mlp=0.093  cnn=0.835  ftt=0.072
+  Train MAPE=12.10%  Test MAPE=13.88%  R²=0.9106  MAE=0.2715
+  d <1  ( 6397): R²=0.9340  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7857  MAPE=19.6%
+
+
+── resnet+cnn+ftt ──────────────────────────────────────
+Equal weights (1/3 each):
+  Train MAPE=12.66%  Test MAPE=13.79%  R²=0.9177
+  d <1  ( 6397): R²=0.9350  MAPE=11.1%
+  d>=1  ( 3105): R²=0.8028  MAPE=19.3%
+
+Minimize overall MAPE:
+  Weights: resnet=0.124  cnn=0.797  ftt=0.079
+  Train MAPE=12.09%  Test MAPE=13.82%  R²=0.9111  MAE=0.2706
+  d <1  ( 6397): R²=0.9354  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7869  MAPE=19.5%
+
+Minimize d>=1-focused MAPE (2x weight):
+  Weights: resnet=0.093  cnn=0.835  ftt=0.073
+  Train MAPE=12.09%  Test MAPE=13.86%  R²=0.9105  MAE=0.2715
+  d <1  ( 6397): R²=0.9349  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7855  MAPE=19.6%
+
+
+── mlp+resnet+cnn ──────────────────────────────────────
+Equal weights (1/3 each):
+  Train MAPE=12.59%  Test MAPE=13.93%  R²=0.9143
+  d <1  ( 6397): R²=0.9333  MAPE=11.2%
+  d>=1  ( 3105): R²=0.7945  MAPE=19.5%
+
+Minimize overall MAPE:
+  Weights: mlp=0.055  resnet=0.150  cnn=0.796
+  Train MAPE=12.09%  Test MAPE=13.86%  R²=0.9102  MAE=0.2718
+  d <1  ( 6397): R²=0.9353  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7848  MAPE=19.6%
+
+Minimize d>=1-focused MAPE (2x weight):
+  Weights: mlp=0.087  resnet=0.080  cnn=0.833
+  Train MAPE=12.10%  Test MAPE=13.90%  R²=0.9098  MAE=0.2725
+  d <1  ( 6397): R²=0.9345  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7836  MAPE=19.6%
+
+
+── mlp+resnet+cnn+ftt ──────────────────────────────────────
+Equal weights (1/4 each):
+  Train MAPE=12.80%  Test MAPE=13.91%  R²=0.9172
+  d <1  ( 6397): R²=0.9324  MAPE=11.2%
+  d>=1  ( 3105): R²=0.8016  MAPE=19.4%
+
+Minimize overall MAPE:
+  Weights: mlp=0.008  resnet=0.119  cnn=0.796  ftt=0.077
+  Train MAPE=12.09%  Test MAPE=13.82%  R²=0.9112  MAE=0.2706
+  d <1  ( 6397): R²=0.9354  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7870  MAPE=19.5%
+
+Minimize d>=1-focused MAPE (2x weight):
+  Weights: mlp=0.045  resnet=0.061  cnn=0.832  ftt=0.062
+  Train MAPE=12.09%  Test MAPE=13.87%  R²=0.9105  MAE=0.2716
+  d <1  ( 6397): R²=0.9346  MAPE=11.1%
+  d>=1  ( 3105): R²=0.7854  MAPE=19.6%
+
+
+======================================================================
+GRID SEARCH: mlp+cnn+ftt and resnet+cnn+ftt (100 points per axis)
+======================================================================
+
+mlp+cnn+ftt — Best overall MAPE:
+  Weights: mlp=0.060  cnn=0.580  ftt=0.360
+  Test MAPE=13.66%  R²=0.9166  MAE=0.2641
+  d <1  ( 6397): R²=0.9349  MAPE=10.9%
+  d>=1  ( 3105): R²=0.8002  MAPE=19.3%
+
+mlp+cnn+ftt — Best d>=1 MAPE:
+  Weights: mlp=0.080  cnn=0.520  ftt=0.400
+  Test MAPE=13.67%  R²=0.9175  MAE=0.2633
+  d <1  ( 6397): R²=0.9345  MAPE=11.0%
+  d>=1  ( 3105): R²=0.8022  MAPE=19.2%
+
+resnet+cnn+ftt — Best overall MAPE:
+  Weights: resnet=0.100  cnn=0.580  ftt=0.320
+  Test MAPE=13.65%  R²=0.9163  MAE=0.2645
+  d <1  ( 6397): R²=0.9358  MAPE=10.9%
+  d>=1  ( 3105): R²=0.7992  MAPE=19.2%
+
+resnet+cnn+ftt — Best d>=1 MAPE:
+  Weights: resnet=0.160  cnn=0.480  ftt=0.360
+  Test MAPE=13.67%  R²=0.9174  MAE=0.2635
+  d <1  ( 6397): R²=0.9356  MAPE=11.0%
+  d>=1  ( 3105): R²=0.8019  MAPE=19.2%
