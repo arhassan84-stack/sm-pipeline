@@ -1,0 +1,38 @@
+======================================================================
+META-LEARNER 5-FOLD RESULTS (13 models + ACF features)
+======================================================================
+
+9-model equal-weight:  MAPE=13.60%  R²=0.9190
+
+13-model equal-weight: MAPE=13.09%  R²=0.9245
+
+7-model baseline: MAPE=13.50%
+  7-model + cnn_aug: MAPE=13.62%  R²=0.9203
+  7-model + cnn_wloss: MAPE=13.50%  R²=0.9191
+  7-model + ftt_wloss: MAPE=13.54%  R²=0.9202
+  7-model + wavenet: MAPE=13.34%  R²=0.9204
+  7-model + wavenet_ftt: MAPE=13.34%  R²=0.9199
+  7-model + wavenet_s2: MAPE=13.31%  R²=0.9210
+  7-model + wavenet_s3: MAPE=13.35%  R²=0.9207
+  7-model + wavenet_ftt_v2: MAPE=13.38%  R²=0.9211
+  7-model + wavenet_alt: MAPE=13.33%  R²=0.9208
+  7-model + wavenet_stride2: MAPE=13.24%  R²=0.9225
+  7-model + wavenet_wide: MAPE=13.34%  R²=0.9212
+  7-model + wavenet_s4: MAPE=13.31%  R²=0.9206
+  7-model + wavenet_s5: MAPE=13.35%  R²=0.9210
+
+NNLS-9 (alpha=0.1): MAPE=13.63%  R²=0.9134
+  Weights: mlp=0.000  resnet=0.000  cnn=0.191  cnn_s123=0.392  cnn_s777=0.099  cnn_ms=0.317  ftt=0.000  ftt_large=0.000  ftt_v2=0.000
+
+NNLS-13 (alpha=32.6): MAPE=13.07%  R²=0.9207
+  Weights: mlp=0.000  resnet=0.000  cnn=0.038  cnn_s123=0.228  cnn_s777=0.010  cnn_ms=0.127  ftt=0.000  ftt_large=0.000  ftt_v2=0.000  cnn_aug=0.000  cnn_wloss=0.081  ftt_wloss=0.000  wavenet=0.000  wavenet_ftt=0.169  wavenet_s2=0.114  wavenet_s3=0.000  wavenet_ftt_v2=0.000  wavenet_alt=0.005  wavenet_stride2=0.095  wavenet_wide=0.000  wavenet_s4=0.133  wavenet_s5=0.000
+
+Per-regime NNLS + soft routing: MAPE=13.01%  R²=0.9182
+  w_slow: cnn_s123=0.252 wavenet_stride2=0.247 cnn=0.144 wavenet_s4=0.135 wavenet_ftt=0.123
+  w_fast: wavenet_ftt=0.228 cnn_s123=0.193 cnn_ms=0.156 cnn_wloss=0.147 wavenet_s4=0.144
+
+NNLS-13+ACF (alpha=7017.0): MAPE=13.12%  R²=0.9237
+  ACF feature weight: log_tauD=0.001  nlfit_rmse=0.000
+
+Best equal-weight combo (12 models): cnn+cnn_s123+cnn_s777+cnn_ms+ftt+ftt_large+ftt_v2+wavenet+wavenet_s2+wavenet_stride2+wavenet_wide+wavenet_s4
+  MAPE=12.96%  R²=0.9244

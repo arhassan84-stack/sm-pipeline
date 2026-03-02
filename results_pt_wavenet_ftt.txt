@@ -1,0 +1,8 @@
+Task: pt_wavenet_ftt
+Architecture: WaveNet(channels=128, dilations=[1, 2, 4, 8, 16, 32, 64, 128], RF=2040lags) + FTT(E=64, heads=8, layers=4) → fusion
+Params: 668,353
+Train R²=0.9274  MAE=0.2468  MAPE=13.1%
+Test  R²=0.9034  MAE=0.2775  MAPE=14.5%
+  d <1  ( 6397): R²=0.9345  MAPE=12.2%
+  d>=1  ( 3105): R²=0.7682  MAPE=19.2%
+Runtime: 3526.4s

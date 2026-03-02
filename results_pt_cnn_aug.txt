@@ -1,0 +1,8 @@
+Task: pt_cnn_aug
+Architecture: FusionNet + trace augmentation (scale U[0.85,1.15] + noise sigma=0.03 + shift ±128)
+Params: 608,801
+Train R²=0.9164  MAE=0.2856  MAPE=15.9%
+Test  R²=0.9082  MAE=0.2880  MAPE=16.5%
+  d <1  ( 6397): R²=0.8821  MAPE=13.2%
+  d>=1  ( 3105): R²=0.7809  MAPE=23.3%
+Runtime: 147.0s

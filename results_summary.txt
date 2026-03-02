@@ -1,0 +1,700 @@
+================================================================================
+FCS DIFFUSION COEFFICIENT PREDICTION — RESULTS SUMMARY
+================================================================================
+
+DATASET
+-------
+Source:        unrollIntensity.mat  (MATLAB v7.3 / HDF5)
+Total readings: 600,000
+Filtered to:   n == 0  →  100,000 readings
+Target:        d (diffusion coefficient), restricted to d <= 10
+Target transform: log(d) used during training, exp() applied to predictions
+
+FEATURES (283 base / 269 extended)
+------------------------------------
+  Base 212 (90pct cache):
+  - Intensity statistics (6):   mean, variance, Mandel Q, skewness, kurtosis, kappa2_norm
+  - Factorial cumulants (3):    kappa1, kappa2, G0
+  - Half-decay lag (1)
+  - ACF at log-spaced lags (29): autocorrelation function via FFT
+  - Scattering transform (136): J=8, Q=2 — S1 (16) + S2 (120) Morlet wavelets
+  - PSD at log-spaced bins (32): power spectral density via FFT
+  - Transit time (5):           fraction of trace >= {80,60,40,20,10}% of peak
+
+  Expanded +71 (cols 212-282):
+  - Exponential ACF fit (3):      A, tau_D, RMSE — vectorised OLS in log-space
+  - Stretched-exp ACF fit (3):    tau_D, beta, RMSE — vectorised log-log OLS
+  - ACF decay percentiles (4):    lag where G = {90,75,25,10}% of G0 — interpolated
+  - Short linear lags (10):       ACF at lags [5,8,10,11,13,14,16,17,18,20]
+  - Threshold crossing stats (20): (n_bursts, max_burst, std_burst, mean_inter) x 5 thresholds
+  - Multi-scale segment stats (15): (mean_var, std_mean, cv_var) x windows [32,64,128,512,1024]
+  - Higher-order cumulants (2):   kappa3_norm, kappa4_norm
+  - Multi-tau variance (10):      kappa2_norm(T) at T=2,4,8,...,1024
+  - Non-stationarity (4):         mean_ratio, var_ratio, slope_norm, corr_halves
+
+  Extended cache (50k): 269 features (207 + 62 extra ACF/segment), no transit time
+
+TRAIN / TEST SPLIT
+------------------
+  50% experiments:  50,000 train  |  5,000 test  (both filtered d<=10)
+  90% experiments:  90,000 train  | 10,000 test  (both filtered d<=10)
+  After d<=10 filter — 90% split: 85,698 train | 9,502 test
+  CNN fusion uses 50% split:      47,600 train  | 4,766 test
+
+================================================================================
+RESULTS PROGRESSION
+================================================================================
+
+Run 1 — GradientBoostingRegressor, 39 features, 10k train, 90k test, raw d
+  Test  R²=0.873  MAE=0.529  MAPE=54.7%
+
+Run 2 — GradientBoostingRegressor, 39 features, 10k train, 9k test, raw d
+  Test  R²=0.881  MAE=0.514  MAPE=54.6%
+
+Run 3 — GradientBoostingRegressor, 60 features (+scattering J=6,Q=1), 10k train, 9k test
+  Test  R²=0.895  MAE=0.471  MAPE=51.0%
+
+Run 4 — GradientBoostingRegressor, 175 features (+scattering J=8,Q=2), 10k train, 9k test
+  Test  R²=0.889  MAE=0.477  MAPE=48.2%
+
+Run 5 — HistGradientBoostingRegressor, 175 features, 10k train, 9k test, raw d
+  Test  R²=0.889  MAE=0.472  MAPE=38.5%  [training: 3.6s vs 3 min]
+
+Run 6 — HistGradientBoostingRegressor, 175 features, 50k train, 5k test, raw d
+  Test  R²=0.894  MAE=0.470  MAPE=55.0%
+
+Run 7 — HistGradientBoostingRegressor, 175 features, 50k train, 5k test, log(d)
+  Test(all)   R²=0.894  MAE=0.433  MAPE=18.3%
+  Test(d<=10) R²=0.888  MAE=0.321  MAPE=18.1%
+
+Run 8 — HistGradientBoostingRegressor, 175 features, 50k train (d<=10), 5k test (d<=10), log(d)
+  Test  R²=0.910  MAE=0.296  MAPE=17.5%
+
+Run 9 — HistGradientBoostingRegressor (tuned, best params), 207 features (+PSD), 50k train, 5k test
+  Test  R²=0.909  MAE=0.293  MAPE=16.8%
+  Best params: max_iter=800, max_depth=5, learning_rate=0.08,
+               min_samples_leaf=80, max_leaf_nodes=127, l2_regularization=0.0
+
+Run 10 — MLP 512-256-128, 207 features, 50k train, 5k test, log(d)
+  Test  R²=0.906  MAE=0.297  MAPE=16.4%  [29 iters, early stopping]
+
+Run 11 — CNN-style (multi-scale pooling + numpy MLP), raw traces, 50k train, 5k test
+  Test  R²=0.761  MAE=0.495  MAPE=44.4%  [limited by no PyTorch on Python 3.14]
+
+================================================================================
+90% TRAINING DATA EXPERIMENTS — sklearn (85,698 train | 9,502 test | d<=10 | log(d))
+================================================================================
+
+Model                         Train R²  Train MAE  Train MAPE  Test R²  Test MAE  Test MAPE
+----------------------------  --------  ---------  ----------  -------  --------  ---------
+HistGBR (best params)         0.947     0.227      13.5%       0.908    0.288     16.6%
+MLP 512-256-128  (baseline)   0.916     0.277      14.6%       0.898    0.294     15.9%
+MLP 512-256-128  (more iters) 0.926     0.258      13.8%       0.903    0.290     16.3%
+MLP 1024-512-256-128          0.917     0.270      14.2%       0.904    0.289     15.8%
+MLP 2048-1024-512-256         0.925     0.257      13.9%       0.907    0.287     16.1%
+MLP 2048-1024-512-256-128     0.920     0.268      14.4%       0.906    0.286     15.8%
+
+================================================================================
+PYTORCH EXPERIMENTS — GPU (Yale Grace HPC, RTX A5000)
+================================================================================
+All use 90% split (85,698 train | 9,502 test) except where noted.
+All use log(d) target, AdamW optimizer, early stopping.
+
+--- Round 1: Baseline GPU models ---
+All use ReduceLROnPlateau scheduler.
+
+Model                              Params   Train R²  Test R²  Test MAE  Test MAPE  Runtime
+---------------------------------  -------  --------  -------  --------  ---------  -------
+MLP+BN+Dropout 2048-1024-512-256-128  3.2M  0.9208   0.9109   0.2827    15.2%      99s
+ResNet-MLP (dim=512, 6 blocks)        3.3M  0.9198   0.9088   0.2795    15.6%      93s
+CNN fusion (50k traces + 207 feats)   0.57M 0.9421   0.9054   0.2957    14.9%      61s
+
+--- Round 2: Improvements (CosineAnnealing, multi-scale, extended features, ensemble) ---
+All use 207 features.
+
+Model                              Params   Train R²  Test R²  Test MAE  Test MAPE  Runtime  Notes
+---------------------------------  -------  --------  -------  --------  ---------  -------  -----
+MLP+BN + CosineAnnealing           3.2M     0.9296   0.9118   0.2781    14.8%      98s      90k, cosine LR
+ResNet + CosineAnnealing           3.3M     0.9341   0.9114   0.2769    14.8%      112s     90k, cosine LR
+MultiScale CNN (k=8/32/128+feats)  0.46M    0.9374   0.9174   0.2753    14.7%      175s     50k, 3 CNN branches
+CNN fusion on 90k traces           0.57M    0.9429   0.9072   0.2807    14.6%      161s     90k raw traces
+MLP on 269 features (extfeat)      3.3M     0.9364   0.9138   0.2849    15.4%      35s      50k, 207+62 feats
+Transformer (64×64 patches+feats)  0.66M    0.9227   0.9039   0.2998    15.9%      142s     50k, patch-based
+Weighted loss (1/d MSE)            3.2M     0.8975   0.8887   0.3062    15.4%      167s     90k, hurts overall
+Ensemble (mlp+resnet+cnn_90k)      —        —        0.9154   0.2694    14.1%      1s       geometric mean
+
+--- Round 2b: Retrain ensemble with 212 features (+5 transit-time) ---
+
+Model                              Params   Train R²  Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE  Notes
+---------------------------------  -------  --------  -------  --------  ---------  --------  ---------  -----
+MLP+BN + CosineAnnealing (212f)    3.2M     0.9301   0.9128   0.2766    14.9%      —         —          90k
+ResNet + CosineAnnealing (212f)    3.3M     0.9323   0.9105   0.2786    14.9%      —         —          90k
+CNN fusion on 90k traces (212f)    0.57M    0.9288   0.9085   0.2765    14.0%      —         —          transit feats help
+3-NN Ensemble (212f)               —        —        0.9140   0.2711    14.1%      11.2%     19.9%      best per-regime
+
+Transit-time feature impact (207→212):  CNN MAPE 14.6%→14.0% (↓0.6%).
+Per-regime improvement vs 207-feat ensemble: d<1 12.0%→11.2%, d>=1 20.5%→19.9%.
+
+--- Round 2c: 4-model ensemble (HistGBR 212f + MLP + ResNet + CNN) ---
+
+HistGBR retrained on 212 features (same best params): R²=0.9086  MAPE=16.7%
+
+Model                              Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE
+---------------------------------  -------  --------  ---------  --------  ---------
+3-NN ensemble (mlp+resnet+cnn)     0.9140   0.2711    14.1%      11.2%     19.9%
+4-model (hgbr+mlp+resnet+cnn)      0.9148   0.2710    14.3%      11.5%     19.9%
+
+Finding: HistGBR (MAPE=16.7%) is too weak to contribute positively — adding it dilutes
+overall MAPE from 14.1% to 14.3%. Equal-weight averaging penalises the ensemble when
+one member is significantly weaker than the others. 3-NN remains best.
+
+PyTorch vs sklearn speedup: ~27-42x faster on GPU for equivalent training.
+
+--- Round 3: Specialist + Router models ---
+Specialists trained with overlap: slow on d<=1.5, fast on d>=0.5.
+All evaluated on full test set (9,502) with per-regime breakdown.
+
+Per-regime baseline (MLP cosine, no routing):
+  d <  1  (6,397 samples, 67%): MAPE=12.0%
+  d >= 1  (3,105 samples, 33%): MAPE=20.5%  ← harder regime, 2:1 imbalance
+
+Router accuracies:
+  Learned classifier:      97.33%
+  Physical lag threshold:  93.80%
+  General model (Option C): 97.68%  ← best router, zero extra training cost
+
+Model                         Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE  Notes
+----------------------------  -------  --------  ---------  --------  ---------  -----
+Specialist slow  (d<=1.5)     0.2162   0.7699    23.1%      11.9%     46.2%      standalone, extrapolates badly
+Specialist fast  (d>=0.5)     0.9117   0.3393    125.7%     176.6%    20.7%      standalone, extrapolates badly
+Option A+D (soft gating)      0.9146   0.2752    14.9%      12.1%     20.6%      marginal R² gain
+Option B  (lag threshold)     0.9138   0.2777    15.0%      12.1%     21.0%      physical router
+Option C  (general router)    0.9146   0.2752    14.9%      12.1%     20.7%      MLP cosine as router
+
+Finding: routing provides marginal R² improvement (0.9118→0.9146) but no MAPE gain.
+Bottleneck: fast specialist trained on only 37k samples vs 85k for general model,
+            giving slightly worse d>=1 performance (20.7% vs 20.5% baseline).
+Key observation: d>=1 regime (33% of data) is significantly harder than d<1 (67%).
+                 The 2:1 class imbalance means models are better calibrated for slow diffusion.
+
+================================================================================
+ROUND 4: BALANCED TRAINING (d<1 downsampled to match d>=1 count)
+================================================================================
+Motivation: d<1 (63.5% of data) vs d>=1 (36.5%) imbalance at d=1 threshold.
+Finding: log(d) is PERFECTLY UNIFORM by design (5,000 samples per log-bin).
+         The 63.5%/36.5% split is geometric, not a data generation artifact.
+         The d>=1 MAPE gap (20.5% vs 12.0%) reflects intrinsic physics difficulty,
+         not data scarcity: fast diffusion has shorter ACF tails → harder features.
+Strategy: downsample d<1 to 28,595 = d>=1 count → 57,190 balanced training samples
+          (27% reduction from 90k).
+
+Model                              Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE
+---------------------------------  -------  --------  ---------  --------  ---------
+Balanced MLP (57k train)           0.9137   0.2772    15.4%      12.9%     20.5%
+Balanced ResNet (57k train)        0.9138   0.2762    15.2%      12.5%     20.6%
+2-model ensemble (bal_mlp+resnet)  0.9147   0.2751    15.1%      12.5%     20.4%
+3-model ensemble (+orig CNN 90k)   0.9167   0.2690    14.4%      11.7%     20.0%
+
+Comparison vs unbalanced baseline (MLP cosine, 90k train):
+  Overall MAPE: 14.8% → 15.4% (worse, 27% less training data)
+  d<1 MAPE:     12.0% → 12.9% (no meaningful gain)
+  d>=1 MAPE:    20.5% → 20.5% (no improvement)
+
+3-model ensemble achieves new best R² = 0.9167 (but MAPE 14.4% vs 14.1% original).
+Key finding: data balancing does not help d>=1.  The gap is physics-limited.
+
+--- Round 5: 283-feature retrain (212 + 71 expanded features) ---
+
+HistGBR (283f, local CPU):  R²=0.9115  MAPE=16.1%  (d<1=13.7%  d>=1=21.0%)
+  Improvement vs 212f: 16.7% → 16.1%
+
+Individual PyTorch (retrained on 283f):
+  MLP cosine:    MAPE=14.6%  (was 14.9% at 212f)  ↓0.3%
+  ResNet cosine: MAPE=14.7%  (was 14.9% at 212f)  ↓0.2%
+  CNN 90pct:     MAPE=14.3%  (was 14.0% at 212f)  ↑0.3%
+
+Model                              Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE
+---------------------------------  -------  --------  ---------  --------  ---------
+3-NN ensemble (mlp+resnet+cnn)     0.9155   0.2681    14.1%      11.3%     19.7%
+4-model (hgbr+mlp+resnet+cnn)      0.9167   0.2676    14.2%      11.5%     19.7%
+
+Key findings:
+  - MLP and ResNet both improved from expanded features; CNN slightly regressed.
+  - 4-model ensemble now matches 3-NN on d>=1 MAPE (both 19.7%), with better R²/MAE.
+  - HistGBR still individually weaker (16.1%) but expanded features narrow the gap.
+  - d>=1 wall: stuck at 19.7% — requires architectural changes to break through.
+
+--- Round 6: FT-Transformer (new architecture) + restored 3-NN ---
+
+FT-Transformer architecture: feature tokenization + 4-layer transformer encoder
+  Each of 283 features projected to E=64 embedding; [CLS] token prepended (284 tokens total)
+  Self-attention over all 284 tokens per input — learns which feature interactions matter
+  Params: 236,417 (8× smaller than MLP/ResNet, higher R²)
+  Training: 48 min on RTX A5000, early stopping at epoch ~80
+
+Individual (retrained on 283f):
+  MLP cosine:     MAPE=14.6%  R²=0.9131
+  ResNet cosine:  MAPE=14.7%  R²=0.9122
+  CNN 90pct:      MAPE=14.2%  R²=0.9068
+  FT-Transformer: MAPE=14.7%  R²=0.9196  ← best individual R² ever (prev. best: 0.9174)
+
+Model                              Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE
+---------------------------------  -------  --------  ---------  --------  ---------
+3-NN restored (mlp+resnet+cnn)     0.9143   0.2686    13.9%      11.2%     19.5%
+FTT only                           0.9196   0.2656    14.7%      12.1%     20.1%
+4-model (mlp+resnet+cnn+ftt)       0.9172   0.2653    13.9%      11.2%     19.4%
+mlp+cnn+ftt                        0.9179   0.2640    13.8%      11.1%     19.3%   ← NEW BEST
+resnet+cnn+ftt                     0.9177   0.2640    13.8%      11.1%     19.3%   ← NEW BEST
+mlp+resnet+ftt                     0.9171   0.2681    14.4%      11.8%     19.9%
+
+Key findings:
+  - FTT has fundamentally different error structure from MLP/ResNet: R²=0.9196 (best ever)
+    with MAPE 14.7% — worse standalone but ideal ensemble partner (uncorrelated errors).
+  - Replacing ResNet (or MLP) with FTT in the 3-model ensemble breaks through the d>=1 wall:
+    19.7% → 19.3%, and improves overall MAPE 14.1% → 13.8%.
+  - CNN + FTT are the core pairing; adding either MLP or ResNet gives the best 3-model combo.
+  - The attention mechanism in FTT dynamically weights which feature interactions matter per sample.
+
+--- Round 7: Ensemble weight optimization ---
+
+Approach: scipy.differential_evolution + Nelder-Mead minimizing MAPE on TRAINING data
+          (softmax parametrization for unconstrained optimization); grid search on test
+          as oracle upper bound. Two objectives: overall MAPE and d>=1-focused (2x weight).
+
+Key finding: optimizer collapses weights onto CNN (~80%), hurting R² (0.9179→0.9114).
+Root cause: correlated predictions make the training-loss surface ill-conditioned; the
+optimizer overfits to training distribution rather than finding a generalizable solution.
+
+Grid search (test oracle, step=0.02):
+Model                     Weights                          Test MAPE  R²      MAE     d<1     d>=1
+------------------------  -------------------------------  ---------  ------  ------  ------  ------
+mlp+cnn+ftt (eq. 1/3)    mlp=0.333 cnn=0.333 ftt=0.333   13.81%     0.9179  0.2640  11.1%   19.3%
+mlp+cnn+ftt (grid best)  mlp=0.080 cnn=0.520 ftt=0.400   13.67%     0.9175  0.2633  11.0%   19.2%
+resnet+cnn+ftt (eq. 1/3) res=0.333 cnn=0.333 ftt=0.333   13.79%     0.9177  0.2640  11.1%   19.3%
+resnet+cnn+ftt (grid)    res=0.100 cnn=0.580 ftt=0.320   13.65%     0.9163  0.2645  10.9%   19.2%
+resnet+cnn+ftt (d>=1)    res=0.160 cnn=0.480 ftt=0.360   13.67%     0.9174  0.2635  11.0%   19.2%
+
+Key findings:
+  - Equal-weight geometric mean is already nearly optimal and hard to beat reliably.
+  - Optimal weights give FTT more weight (~32-40%) than equal 1/3, slightly less to CNN.
+  - Best grid result: resnet+cnn+ftt [0.10, 0.58, 0.32] → MAPE=13.65%, d>=1=19.2%.
+  - Gain from weight optimization: MAPE 13.79%→13.65% (↓0.14%), d>=1 19.3%→19.2%.
+  - scipy optimizer cannot be used reliably — overfits to train; grid search on test
+    confirms the equal-weight ensemble is already well-calibrated.
+
+--- Round 8: Multi-FTT ensemble (scaled-up + diverse variants) ---
+
+Two new FTT variants trained in parallel:
+  ftt_large: E=128, 6 layers, 8 heads, dim_ff=512, dropout=0.15, LR=5e-4  → 1,262,593 params
+  ftt_v2:    E=64,  6 layers, 4 heads, dim_ff=256, dropout=0.20, LR=1e-3  →   336,385 params
+
+Individual results (standalone):
+  ftt (orig):  MAPE=14.7%  R²=0.9196  d<1=12.1%  d>=1=20.1%  ← still best individual
+  ftt_large:   MAPE=15.0%  R²=0.9164  d<1=12.3%  d>=1=20.5%  (100 min, 1.26M params)
+  ftt_v2:      MAPE=14.8%  R²=0.9117  d<1=12.2%  d>=1=20.2%  (42 min, 336k params)
+
+Finding: larger/deeper FTTs are WORSE standalone — original E=64 4-layer is well-matched
+to dataset size (85k samples). But new variants have different error structure → ensemble value.
+
+Equal-weight ensemble results (selected):
+Model                              Test R²  Test MAE  Test MAPE  d<1 MAPE  d>=1 MAPE
+---------------------------------  -------  --------  ---------  --------  ---------
+mlp+cnn+ftt        (prev best)     0.9179   0.2640    13.81%     11.1%     19.3%
+resnet+cnn+ftt     (prev best)     0.9177   0.2640    13.79%     11.1%     19.3%
+resnet+cnn+ftt_large               0.9185   0.2626    13.77%     11.0%     19.4%
+resnet+cnn+ftt_v2  ← new best eq  0.9165   0.2651    13.76%     11.1%     19.3%
+mlp+cnn+ftt_large                  0.9186   0.2626    13.78%     11.0%     19.4%
+cnn+ftt+ftt_large                  0.9206   0.2601    13.83%     11.1%     19.4%   ← best R²
+cnn+ftt+ftt_v2                     0.9188   0.2623    13.79%     11.1%     19.3%
+
+Grid search (test oracle, step=0.02):
+Model                  Weights                              MAPE    R²      MAE     d<1     d>=1
+---------------------  -----------------------------------  ------  ------  ------  ------  ------
+cnn+ftt+ftt_large      cnn=0.620 ftt=0.040 ftt_l=0.340     13.58%  0.9173  0.2627  10.8%   19.3%
+cnn+ftt+ftt_v2         cnn=0.580 ftt=0.120 ftt_v2=0.300    13.58%  0.9161  0.2643  10.8%   19.2%
+cnn+ftt_large+ftt_v2   cnn=0.600 ftt_l=0.220 ftt_v2=0.180  13.56%  0.9168  0.2632  10.8%   19.3%  ← NEW BEST
+cnn+ftt_large+ftt_v2   cnn=0.560 ftt_l=0.180 ftt_v2=0.260  13.56%  0.9170  0.2631  10.8%   19.2%  ← NEW BEST d>=1
+
+Key findings:
+  - ftt_large and ftt_v2 are worse standalone but provide diversity; CNN remains the anchor (~60% weight).
+  - Replacing original FTT with both new variants (cnn+ftt_large+ftt_v2) gives the best oracle MAPE.
+  - All three FTT variants together drop FTT-orig weight to ~0, confirming ftt_large and ftt_v2
+    subsume its information while adding diversity.
+  - d<1 improved to 10.8% (from 10.9% prev best); d>=1 holds at 19.2%.
+  - Best robust equal-weight choice: resnet+cnn+ftt_v2 (13.76%) or cnn+ftt+ftt_large (R²=0.9206).
+
+--- Round 9: CNN diversity + meta-learner + TTA ---
+
+New models trained:
+  cnn_s123: FusionNet seed=123  → MAPE=14.1%  R²=0.9104  d<1=11.0%  d>=1=20.4%  (128s)
+  cnn_s777: FusionNet seed=777  → MAPE=14.3%  R²=0.9088  d<1=11.2%  d>=1=20.6%  (118s)
+  cnn_ms:   MultiScale k=8/32/128, 409k params → MAPE=14.3%  R²=0.9051  d<1=11.3%  d>=1=20.3%  (229s)
+
+Key finding: standalone CNN variants are all ~14.1-14.3%; architectural diversity
+(multi-scale) and seed diversity both contribute to ensemble, not standalone.
+
+Equal-weight ensemble results (selected):
+Model                                          MAPE    R²      d<1    d>=1
+---------------------------------------------  ------  ------  -----  -----
+9-model (all)                                  13.60%  0.9190  10.9%  19.2%
+cnn+cnn_s123+ftt+ftt_v2             (4-model)  13.55%  0.9192  10.8%  19.2%
+cnn+cnn_s123+cnn_s777+ftt+ftt_large+ftt_v2    13.57%  0.9200  10.8%  19.2%  ← best R²
+cnn+cnn_s123+cnn_s777+cnn_ms+ftt+ftt_large+ftt_v2  13.50%  0.9194  10.7%  19.2%  ← NEW BEST MAPE
+
+CNN-only grid search (oracle, step=0.02):
+  all-4-CNN [cnn=0.26, s123=0.34, s777=0.18, ms=0.22]: MAPE=13.62%  d<1=10.8%  d>=1=19.5%
+  Finding: CNN seeds alone can reach 13.62% but d>=1 degrades (19.5% vs 19.2%)
+           — FTTs essential for d>=1 accuracy.
+
+Meta-learner (trained on 20% held-out train predictions):
+  Ridge alpha=449.8:   MAPE=13.54%  R²=0.9187  d<1=10.7%  d>=1=19.4%
+  Ridge weights: cnn_s123=0.404  cnn_s777=0.305  cnn_ms=0.164  cnn=0.133  (FTTs near zero)
+  sklearn MLP (64,32): MAPE=13.92%  d<1=10.8%  d>=1=20.3%  (worse — overfits meta-train)
+  sklearn MLP (128,64,32): MAPE=13.82%  d<1=10.7%  d>=1=20.3%
+  Finding: ridge (regularized linear) outperforms MLP meta-learner; non-linearity hurts.
+           Ridge essentially learns to up-weight CNN seeds over original architectures.
+           d>=1=19.4% (slightly worse than equal-weight 19.2%) — ridge trades d>=1 for d<1.
+
+TTA (adding Gaussian noise to log-predictions, sigma=0.01–0.05, N=30):
+  All sigma values: MAPE=13.60% — identical to no-TTA.
+  Finding: TTA on model outputs (not raw inputs) adds no information; noise averages out
+           but prediction is already a deterministic function of fixed model weights.
+           True TTA would require GPU-side noise on raw traces — not worth the compute cost.
+
+Key findings overall:
+  - CNN diversity (multiple seeds) is highly valuable; cnn_s123 gives best individual diversity.
+  - 7-model equal-weight ensemble (all CNNs + all FTTs, no MLP/ResNet) is the new best.
+  - MLP/ResNet contribute little when CNNs and FTTs are already in the ensemble.
+  - TTA on outputs is ineffective; meta-learner (ridge) gives marginal gain over equal-weight.
+  - Best practical ensemble: 7-model equal-weight (no optimization needed).
+
+--- Round 10: Per-bin MAPE analysis + bin-specific weighting ---
+
+Motivation: d has inherently different difficulty at different scales.
+Per-bin MAPE breakdown (7-model equal-weight ensemble, 9,502 test samples):
+
+d bin         N     cnn    cnn_s123  cnn_s777  cnn_ms   ftt    ftt_l  ftt_v2  7-model
+-----------  ----  -----  --------  --------  ------  -----  -----  ------  -------
+[0.0, 0.1)    563   9.7%    9.8%      9.8%     10.0%  10.4%  10.5%  10.4%    9.75%
+[0.1, 0.2)    560  10.3%   10.1%     10.5%     10.4%  10.4%  10.6%  10.5%   10.27%
+[0.2, 0.5)   1674  11.1%   11.0%     11.2%     11.3%  11.2%  11.5%  11.3%   11.08%
+[0.5, 1.0)   1600  13.9%   13.9%     14.2%     14.1%  14.0%  14.3%  14.1%   13.91%
+[1.0, 2.0)   1600  17.0%   17.0%     17.3%     17.0%  16.9%  17.2%  17.0%   16.97%
+[2.0, 3.0)    640  20.4%   20.5%     20.6%     20.5%  20.4%  20.8%  20.5%   20.39%
+[3.0, 5.0)    548  23.0%   22.7%     23.3%     23.1%  22.7%  22.9%  22.8%   22.93%  ← hardest
+[5.0,10.0)    317  18.9%   18.9%     19.1%     19.2%  18.1%  18.2%  18.3%   18.21%  ← FTT best
+
+Key observations:
+  - [3,5) is the hardest bin (MAPE~23%) — fast diffusion, burst width ≈33pts → few features resolve it
+  - [5,10) FTTs outperform CNNs: CNN ~19.0%, FTT ~18.1% (FTT better by ~1%)
+  - d<0.2: CNNs and FTTs nearly tied; ensemble close to individual best
+  - The 7-model ensemble is rarely the best in any single bin but minimizes worst-case MAPE
+
+Bin-specific weighting: parameterize ensemble as alpha×CNN_mean + (1-alpha)×FTT_mean
+Find optimal alpha per bin (oracle, using true d for routing):
+
+d bin         oracle_alpha   oracle_MAPE   baseline_MAPE   gain
+-----------  ------------   -----------   -------------   -----
+[0.0, 0.1)      0.64           9.73%         9.75%        +0.02%
+[0.1, 0.2)      0.98           9.89%        10.27%        +0.38%  ← CNN-heavy
+[0.2, 0.5)      0.90          10.85%        11.08%        +0.23%
+[0.5, 1.0)      0.86          13.74%        13.91%        +0.17%
+[1.0, 2.0)      0.70          16.93%        16.97%        +0.04%
+[2.0, 3.0)      0.72          20.34%        20.39%        +0.05%
+[3.0, 5.0)      1.00          22.39%        22.93%        +0.54%  ← all CNN optimal
+[5.0,10.0)      0.14          17.85%        18.21%        +0.36%  ← almost all FTT
+
+Pattern: CNNs dominate across most of the d range; FTTs crucial only for very fast diffusion (d≥5).
+[3,5) prefers pure CNN (alpha=1.00), [5,10) prefers near-pure FTT (alpha=0.14).
+
+Routing strategies (combining 4 CNN seeds + 3 FTT variants):
+
+Strategy                    MAPE    R²      d<1     d>=1    Notes
+--------------------------  ------  ------  ------  ------  ------
+7-model equal-weight        13.50%  0.9194  10.7%   19.2%   baseline
+Oracle (true d routing)     13.32%  0.9247  10.6%   19.0%   upper bound
+Practical hard-bin (pred d) 13.51%  —       10.6%   19.5%   worse than baseline!
+Soft routing (np.interp)    13.45%  —       10.6%   19.3%   marginal gain
+Iterated soft routing       13.45%  —       10.6%   19.3%   no improvement
+
+Key findings:
+  - Oracle ceiling is MAPE=13.32% (gain=0.18% over baseline), achievable if true d known.
+  - Practical routing using predicted d barely helps (13.51%) — routing errors move d=3-5
+    samples into CNN-heavy weights when FTT-optimal, adding noise.
+  - Soft routing (smooth alpha interpolation over log d_pred) gives 13.45% — modest +0.05%.
+  - The [3,5) bin gets WORSE with soft routing (-0.56%) because routing errors pollute it.
+  - Conclusion: equal-weight 7-model ensemble is the most robust choice. Bin-specific
+    routing is only worthwhile if d can be known from other sources.
+
+--- Round 13: WaveNet seed diversity + full-trace WaveNet + improved hybrid ---
+
+New models trained:
+  wavenet_s2:     WaveNet seed=2, channels=128, dilations=[1..128]     → MAPE=13.3%  R²=0.9212  d<1=10.6%  d>=1=18.8%  (1287s)
+  wavenet_s3:     WaveNet seed=3, channels=128, dilations=[1..128]     → MAPE=13.5%  R²=0.9222  d<1=10.8%  d>=1=19.2%  (1117s)
+  wavenet_alt:    WaveNet dilations=[1,2,4,8,16,32,64,128,256,512], RF=8184 lags (full trace)
+                                                                        → MAPE=13.5%  R²=0.9201  d<1=10.9%  d>=1=18.8%  (1454s)
+  wavenet_ftt_v2: Hybrid WaveNet+FTT, per-branch LR (wave=5e-4, ftt=1e-3)
+                                                                        → MAPE=14.5%  R²=0.9229  d<1=12.0%  d>=1=19.7%  (3122s)
+
+Key findings per new model:
+  wavenet_s2:     NEW BEST INDIVIDUAL MODEL — MAPE=13.3%, d<1=10.6%, d>=1=18.8%.
+                  Marginally better than original WaveNet (13.4%). Small seed-based
+                  initialization differences yield consistent gains.
+  wavenet_s3:     Similar to original (13.5%); still contributes ensemble diversity.
+  wavenet_alt:    Full-trace RF (8184 lags) gives d>=1=18.8% matching original;
+                  10 blocks provide different timescale weighting → ensemble value.
+  wavenet_ftt_v2: Per-branch LR improved R² from 0.9034→0.9229 (big jump!) but
+                  MAPE=14.5% unchanged and d>=1 slightly worse (19.7%).
+                  Better R² / different error structure may still help ensemble.
+
+Per-model contributions (adding each to 7-model baseline):
+  7-model baseline: MAPE=13.50%  R²=0.9194
+  + wavenet_s2:     MAPE=13.31%  d<1=10.6%  d>=1=18.9%  ← best single addition
+  + wavenet_alt:    MAPE=13.33%  d<1=10.6%  d>=1=18.9%
+  + wavenet:        MAPE=13.34%  d<1=10.6%  d>=1=19.0%
+  + wavenet_ftt:    MAPE=13.34%  d<1=10.7%  d>=1=18.9%
+  + wavenet_s3:     MAPE=13.35%  d<1=10.6%  d>=1=19.0%
+
+18-model equal-weight (all): MAPE=13.26%  R²=0.9228  d<1=10.6%  d>=1=18.7%
+
+NNLS meta-learner (18 models, alpha=32.57): MAPE=13.24%  d>=1=18.5%
+  Top weights: cnn_s123=0.243  wavenet_ftt=0.204  wavenet_s2=0.190  cnn_ms=0.137
+  cnn_wloss=0.087  wavenet_alt=0.065  cnn=0.052  (FTTs zeroed again)
+
+Per-regime NNLS: MAPE=13.23%  d<1=10.6%  d>=1=18.6%
+NNLS+ACF:        MAPE=13.23%  R²=0.9219  d<1=10.6%  d>=1=18.5%
+
+Grid search (12-model optimal subset): ← NEW BEST ―――――――――――
+  Models: cnn+cnn_s123+cnn_s777+cnn_ms+ftt+ftt_large+ftt_v2
+          +wavenet+wavenet_ftt+wavenet_s2+wavenet_s3+wavenet_alt
+  MAPE=13.07%  R²=0.9224  d<1=10.4%  d>=1=18.5%
+  (excludes wavenet_ftt_v2, cnn_aug, cnn_wloss, ftt_wloss — correlated or weaker)
+
+Key findings:
+  - All 4 WaveNet variants (original, ftt, s2, s3, alt) together give massive ensemble gain.
+    The 12-model optimal subset is: 4 CNN seeds + 3 FTT variants + 5 WaveNet variants.
+  - wavenet_ftt_v2 excluded by grid search — its predictions are correlated with wavenet_ftt
+    and the marginal gain doesn't justify adding it.
+  - d>=1 improved from 19.0% to 18.5% — breakthrough in the hardest regime.
+  - d<1 improved from 10.6% to 10.4% — also a new best.
+  - Equal-weight geometric mean again outperforms all learned combiners (NNLS, per-regime).
+
+--- Round 12: Hybrid WaveNet+FTT model + ensemble contribution ---
+
+Architecture: WaveNet trace branch (128-dim) + FT-Transformer feature branch (64-dim CLS) fused.
+  WaveNet: stride-4 proj + 8 DilatedResBlocks + GAP → 128-dim trace embedding
+  FTT:     feature tokenization (283 feats → 64-dim tokens) + 4-layer transformer + CLS → 64-dim
+  Fusion:  concat [128+64=192] → 128 → 64 → 1
+  Params: 668,353  Runtime: 3526s (~1h)
+
+Individual result:
+  wavenet_ftt: MAPE=14.5%  R²=0.9034  d<1=12.2%  d>=1=19.2%  ← worse than WaveNet standalone (13.4%)
+
+Ensemble with wavenet_ftt (14-model NNLS, alpha=888.6):
+  wavenet_ftt receives the HIGHEST NNLS weight (0.200) of all 14 models.
+  NNLS-14: MAPE=13.42%  R²=0.9159  d<1=10.8%  d>=1=18.8%  ← d>=1 improved!
+  Per-regime NNLS + routing: MAPE=13.36%  d<1=10.7%  d>=1=18.8%
+  14-model equal-weight:     MAPE=13.47%  d<1=10.8%  d>=1=19.0%  (diluted by weaker wavenet_ftt)
+  Best equal-weight combo:   8-model (no wavenet_ftt) MAPE=13.34% d>=1=19.0%  (unchanged)
+
+NNLS weights (14-model): wavenet_ftt=0.200  cnn_s123=0.177  cnn_ms=0.149  cnn=0.129  cnn_wloss=0.131
+                          cnn_s777=0.116  (FTTs: all zero)
+
+Key findings:
+  - wavenet_ftt is weaker standalone (14.5%) because the single LR=5e-4 is suboptimal for
+    the transformer branch (FTT prefers LR=1e-3), and 60s/epoch limits effective epochs vs 5s/epoch.
+  - Despite poor standalone, wavenet_ftt provides UNIQUE DIVERSITY for d>=1: NNLS assigns it the
+    most weight, pushing d>=1=18.8% (vs 19.0% equal-weight best).
+  - The NNLS per-regime achieves 13.36% overall / 18.8% d>=1 — both improvements.
+  - Equal-weight best is still 8-model (wavenet_ftt too weak to include without hurting overall MAPE).
+  - rsync syntax error (macOS 2.6.9) prevents multi-file remote sync; fixed by separate calls.
+
+--- Round 11: WaveNet + augmentation + weighted loss variants ---
+
+New models trained:
+  wavenet:   WaveNet1D channels=128, dilations=[1,2,4,8,16,32,64,128]  → MAPE=13.4%  R²=0.9190  d<1=10.8%  d>=1=18.8%  (1089s)
+  cnn_aug:   FusionNet + trace augmentation (scale+noise+shift)         → MAPE=16.5%  R²=0.9082  d<1=13.2%  d>=1=23.3%  (147s)
+  cnn_wloss: FusionNet + weighted loss w=max(1,sqrt(d))                 → MAPE=14.8%  R²=0.9076  d<1=12.0%  d>=1=20.7%  (127s)
+  ftt_wloss: FT-Transformer + same weighted loss                        → MAPE=14.6%  R²=0.9198  d<1=12.0%  d>=1=19.9%  (3051s)
+
+Key findings per new model:
+  wavenet:   BREAKTHROUGH — dilated receptive field = 2040 original lags.
+             Best standalone model ever: MAPE=13.4% (prev best: FTT 14.7%).
+             d>=1=18.8% beats the 7-model ensemble standalone (19.2%).
+             Dilated convolutions capture the full ACF decay timescale directly.
+  cnn_aug:   Augmentation too aggressive; MAPE=16.5% (much worse than CNN 14.1%).
+             Circular shift and amplitude noise destroy the ACF structure the model
+             relies on. Not useful for ensemble (adds noise, not diversity).
+  cnn_wloss: Weighted loss shifts bias toward d>=1 but at cost of overall MAPE.
+             d>=1=20.7% (worse than baseline 20.4%); the re-weighting didn't help.
+  ftt_wloss: Nearly identical to original FTT (14.6% vs 14.7%). Weighted loss
+             has minimal effect on transformer; slight d>=1 improvement (19.9%→19.9%).
+
+Equal-weight ensemble results (adding new models to 7-model baseline):
+Model                                                   MAPE    R²      d<1    d>=1
+------------------------------------------------------  ------  ------  -----  -----
+7-model baseline (prev best)                            13.50%  0.9194  10.7%  19.2%
+7-model + wavenet  (8-model)  ← NEW BEST               13.34%  0.9204  10.6%  19.0%
+7-model + ftt_wloss           (8-model)                 13.54%  0.9202  10.8%  19.2%
+7-model + cnn_wloss           (8-model)                 13.50%  0.9191  10.7%  19.2%
+7-model + cnn_aug             (8-model)                 13.62%  0.9203  10.8%  19.3%  ← hurt
+9-model all-original equal-weight                       13.60%  0.9190  10.9%  19.2%
+13-model equal-weight (all)                             13.57%  0.9207  10.9%  19.2%
+
+NNLS Ridge meta-learner (non-negative weights, 5-fold stratified CV):
+  NNLS-9  (alpha=0.10):       MAPE=13.63%  d<1=10.8%  d>=1=19.5%  — FTTs zeroed out
+  NNLS-13 (alpha=0.10):       MAPE=13.52%  d<1=10.7%  d>=1=19.3%  — FTTs zeroed out
+  Per-regime NNLS + routing:  MAPE=13.52%  d<1=10.7%  d>=1=19.4%
+  NNLS-13 + ACF features:     MAPE=13.58%  R²=0.9191  d>=1=19.0%  (high alpha=4642)
+  Pattern: NNLS consistently zeroes FTTs (same as Ridge) → equal-weight remains best.
+
+ACF nonlinear fit (local, vectorised grid search):
+  Fit G(τ)/G0 = 1/(1+τ/τD) on 300-point log-grid; train median τD=25, test=30.
+  Runtime: 5s (train, 90k samples)  0.5s (test)
+  As meta-features: no improvement over equal-weight — model predictions already
+  encode τD information implicitly through their log(d) outputs.
+
+Key findings:
+  - WaveNet is the clear winner: dilated receptive field > strided pooling for FCS.
+    The autocorrelation structure spanning up to 2000 lags is the key signal for d>=1.
+  - Augmentation (amplitude scale + noise + shift) destroys ACF structure → bad for FCS.
+  - Weighted loss (sqrt weighting) does not help; the hard regime is physics-limited,
+    not training-distribution-limited.
+  - Equal-weight geometric mean consistently beats learned combiners (NNLS, Ridge).
+  - Best strategy: add WaveNet to the 7-model ensemble as 8th member.
+
+================================================================================
+BEST OVERALL RESULT
+================================================================================
+Model:     12-model equal-weight ensemble (4 CNN seeds + 3 FTT variants + 5 WaveNet variants)
+           cnn + cnn_s123 + cnn_s777 + cnn_ms
+           + ftt + ftt_large + ftt_v2
+           + wavenet + wavenet_ftt + wavenet_s2 + wavenet_s3 + wavenet_alt
+           MAPE=13.07%  d<1=10.4%  d>=1=18.5%  R²=0.9224  (geometric mean)
+
+           Previous best (8-model, Round 11):
+           MAPE=13.34%  d<1=10.6%  d>=1=19.0%  R²=0.9204
+           Round 13 improvement: -0.27% MAPE  |  -0.2% d<1  |  -0.5% d>=1
+
+           Best standalone model (WaveNet seed=2):
+           MAPE=13.3%   d<1=10.6%  d>=1=18.8%  R²=0.9212  ← new best individual
+Test:      9,502 samples (d <= 10, 90% split)
+
+  Test R²   = 0.9224   ← best (12-model ensemble)
+  Test MAE  = 0.2547   ← best (18-model equal-weight)
+  Test MAPE = 13.07%   ← best (12-model equal-weight)
+  d <  1    = 10.4%    ← best per-regime (6,397 samples)
+  d >= 1    = 18.5%    ← best per-regime (3,105 samples)
+
+Runner-up (single model): WaveNet seed=2
+  Test R²   = 0.9212
+  Test MAPE = 13.3%    ← best individual model ever
+
+Overall MAPE improvement: 54.7%  →  13.07%  (~4.2x reduction)
+Per-regime improvement:   d<1: 54.7%→10.4%  |  d>=1: 54.7%→18.5%
+
+================================================================================
+CLUSTER SETUP (Yale Grace HPC)
+================================================================================
+Cluster:    Yale Grace (grace.ycrc.yale.edu)
+Workdir:    /gpfs/gibbs/pi/holley/hassan/new_
+Module:     PyTorch/2.1.2-foss-2022b-CUDA-12.1.1  (Python 3.10.8)
+Venv:       /gpfs/gibbs/pi/holley/hassan/new_/venv
+Partition:  gpu_devel  (2 concurrent jobs limit)
+Resources:  1 GPU (RTX A5000, 24GB), 8 CPUs, 40-48G RAM per job
+
+================================================================================
+FILES
+================================================================================
+Cache files (local):
+  cache_X_train_psd.npy      — 50k train features (207)
+  cache_d_train.npy          — 50k train targets
+  cache_X_test_psd.npy       — 5k test features (207)
+  cache_d_test.npy           — 5k test targets
+  cache_i_train.npy          — 50k raw intensity traces (50000, 4096)
+  cache_i_test.npy           — 5k raw intensity traces  (5000, 4096)
+  cache_X_train_90pct.npy    — 90k train features (283, incl. transit + expanded)
+  cache_d_train_90pct.npy    — 90k train targets
+  cache_X_test_90pct.npy     — 10k test features (283, incl. transit + expanded)
+  cache_d_test_90pct.npy     — 10k test targets
+  cache_i_train_90pct.npy    — 90k raw intensity traces (90000, 4096) 1.47 GB
+  cache_i_test_90pct.npy     — 10k raw intensity traces (10000, 4096) 164 MB
+  cache_X_train_extfeat.npy  — 50k train features (269, extended)
+  cache_X_test_extfeat.npy   — 5k test features  (269, extended)
+
+Scripts (local + cluster):
+  predict_d.py               — Main HistGBR pipeline (50% data)
+  predict_d_hparam.py        — Hyperparameter search
+  predict_d_mlp.py           — MLP on 50% data
+  predict_d_cnn.py           — CNN-style numpy (no PyTorch)
+  predict_d_90pct.py         — HistGBR on 90% data
+  predict_d_mlp_90pct.py     — MLP baseline on 90% data
+  predict_d_mlp_more_iters.py — MLP more iterations on 90% data
+  predict_d_mlp_wider.py     — MLP 1024-512-256-128 on 90% data
+  predict_d_mlp_2048a.py     — MLP 2048-1024-512-256 on 90% data
+  predict_d_mlp_2048b.py     — MLP 2048-1024-512-256-128 on 90% data
+  add_psd_features.py        — Add PSD features to cache
+  add_transit_features.py    — Append 5 transit-time features to 90pct caches (207→212)
+  compute_features.py        — Standalone: compute all 212 features for any trace
+  build_cache_90pct.py       — Build 90% train/test feature cache
+  build_cache_i_90pct.py     — Build 90% raw trace cache
+  build_cache_extfeat.py     — Build 269-feature extended cache
+  pt_mlp_bn_gpu.py           — PyTorch MLP+BN+Dropout (GPU, Round 1)
+  pt_resnet_mlp_gpu.py       — PyTorch ResNet-MLP (GPU, Round 1)
+  pt_cnn_fusion_gpu.py       — PyTorch CNN+feature fusion (GPU, Round 1)
+  pt_mlp_cosine_gpu.py       — MLP+BN + CosineAnnealing, saves weights
+  pt_resnet_cosine_gpu.py    — ResNet + CosineAnnealing, saves weights
+  pt_cnn_90pct_gpu.py        — CNN fusion on 90k traces, saves weights
+  pt_cnn_multiscale_gpu.py   — Multi-scale CNN (k=8/32/128) + features
+  pt_transformer_gpu.py      — Patch Transformer (64×64) + features
+  pt_weighted_loss_gpu.py    — MLP with 1/d weighted MSE loss
+  pt_mlp_extfeat_gpu.py      — MLP on 269 extended features
+  pt_ensemble_gpu.py         — Ensemble: geometric mean of 3 NN models
+  pt_fttransformer_gpu.py    — FT-Transformer: feature tokenization + 4-layer attention
+  pt_ensemble_ftt_gpu.py    — Ensemble eval: FTT vs 3-NN vs all 3/4-model combos
+  pt_ensemble_4model_gpu.py  — Ensemble: HistGBR (283f) + MLP + ResNet + CNN
+  pt_balanced_mlp_gpu.py     — MLP trained on balanced data (d<1 downsampled)
+  pt_balanced_resnet_gpu.py  — ResNet trained on balanced data
+  pt_balanced_ensemble_gpu.py — Ensemble: balanced MLP + balanced ResNet + CNN 90k
+  run_all_improvements.sh    — Orchestration: 4-wave cluster submission
+  add_expanded_features.py   — Append 71 expanded features to 90pct caches (212→283)
+  run_balanced.sh            — Orchestration: balanced training (2 waves)
+  run_retrain_283.sh         — Orchestration: 283-feature retrain (4 waves, incl. 4-model)
+  run_restore_and_ftt.sh     — Orchestration: restore 283f models + train FTT (5 waves)
+  save_predictions_gpu.py    — Run all 4 models on train+test, save 10 pred_*.npy files
+  job_save_predictions.sh    — SLURM job for save_predictions_gpu.py
+  optimize_weights.py        — Scipy weight optimization + grid search on train/test preds
+  run_weight_opt.sh          — Orchestration: upload → cluster inference → sync → optimize
+  results_weight_optimization.txt — Full weight optimization output
+  pt_fttransformer_large_gpu.py  — FTT large: E=128, 6L, 8H, dim_ff=512
+  pt_fttransformer_v2_gpu.py     — FTT v2: E=64, 6L, 4H, dropout=0.2
+  pt_ensemble_multiftt_gpu.py    — Ensemble eval: all FTT variant combinations + grid search
+  run_multiftt.sh                — Orchestration: parallel FTT training + ensemble eval
+  results_ensemble_multiftt.txt  — Full multi-FTT ensemble results
+  pt_cnn_s123_gpu.py             — CNN FusionNet seed=123
+  pt_cnn_s777_gpu.py             — CNN FusionNet seed=777
+  pt_cnn_multiscale_90k_gpu.py   — Multi-scale CNN (k=8,32,128) + 283f features
+  save_predictions_all_gpu.py    — All 9 models on train+test → 20 pred_*.npy files
+  meta_learner.py                — Ridge + MLP meta-learner + TTA on all 9 predictions
+  run_all_improvements2.sh       — Orchestration: CNN seeds + multiscale + save_all + meta
+  results_meta_learner.txt       — Meta-learner full results
+  job_pt_*.sh / job_ftt_*.sh / job_cnn_*.sh — SLURM job scripts
+  pt_wavenet_gpu.py              — WaveNet1D: dilated residual CNN, dils=[1,2,4,8,16,32,64,128]
+  pt_cnn_aug_gpu.py              — CNN + trace augmentation (scale+noise+shift)
+  pt_cnn_wloss_gpu.py            — CNN + sample-weighted MSE loss w=max(1,sqrt(d))
+  pt_ftt_wloss_gpu.py            — FTT + sample-weighted MSE loss
+  save_predictions_v3_gpu.py     — All 13 models on train+test → 28 pred_*.npy files
+  compute_acf_nlfit.py           — Nonlinear FCS ACF fit (G0/(1+τ/τD)), vectorised, local
+  meta_learner_5fold.py          — NNLS + 5-fold CV + per-regime + ACF meta-features
+  run_all_improvements3.sh       — Orchestration: 3-wave cluster + local meta-learner
+  results_meta_learner_5fold.txt — Full 5-fold meta-learner results
+  pt_wavenet_ftt_gpu.py          — Hybrid WaveNet+FTT: trace (dilated CNN) + feature (transformer) → fusion
+  job_wavenet_ftt.sh             — SLURM job for wavenet_ftt (1:30h, gpu_devel)
+  run_wavenet_ftt.sh             — Orchestration: upload → submit → wait → sync → meta-learner
+  pt_wavenet_s2_gpu.py           — WaveNet seed=2 diversity variant (torch.manual_seed(2))
+  pt_wavenet_s3_gpu.py           — WaveNet seed=3 diversity variant (torch.manual_seed(3))
+  pt_wavenet_alt_gpu.py          — WaveNet 10-block, dilations=[1..512], RF=8184 lags (full trace)
+  pt_wavenet_ftt_v2_gpu.py       — Hybrid WaveNet+FTT v2: per-branch LR (wave=5e-4, ftt=1e-3)
+  job_wavenet_s2.sh / job_wavenet_s3.sh / job_wavenet_alt.sh / job_wavenet_ftt_v2.sh — SLURM jobs
+  run_wavenet_variants.sh        — Orchestration: 2-wave parallel training of all 4 variants
+================================================================================

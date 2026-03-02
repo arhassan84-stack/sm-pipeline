@@ -1,0 +1,9 @@
+Task: pt_wavenet_s3
+Architecture: WaveNet1D channels=128 dilations=[1, 2, 4, 8, 16, 32, 64, 128] seed=3
+  Receptive field: 2040 original lags
+Params: 587,905
+Train R²=0.9404  MAE=0.2335  MAPE=12.3%
+Test  R²=0.9222  MAE=0.2574  MAPE=13.5%
+  d <1  ( 6397): R²=0.9373  MAPE=10.8%
+  d>=1  ( 3105): R²=0.8135  MAPE=19.2%
+Runtime: 1117.1s

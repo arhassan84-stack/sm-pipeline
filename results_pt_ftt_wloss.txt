@@ -1,0 +1,7 @@
+Task: pt_ftt_wloss
+Architecture: FT-Transformer E=64 heads=8 layers=4 + weighted loss
+Params: 236,417
+Test  R²=0.9198  MAE=0.2640  MAPE=14.6%
+  d <1  ( 6397): R²=0.9313  MAPE=12.0%
+  d>=1  ( 3105): R²=0.8079  MAPE=19.9%
+Runtime: 3051.1s

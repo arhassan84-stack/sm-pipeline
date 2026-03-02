@@ -1,0 +1,9 @@
+Task: pt_wavenet_alt
+Architecture: WaveNet1D channels=128 dilations=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+  Receptive field: 8184 original lags (covers full 4096-lag FCS trace)
+Params: 686,977
+Train R²=0.9415  MAE=0.2285  MAPE=12.0%
+Test  R²=0.9201  MAE=0.2582  MAPE=13.5%
+  d <1  ( 6397): R²=0.9374  MAPE=10.9%
+  d>=1  ( 3105): R²=0.8085  MAPE=18.8%
+Runtime: 1453.6s

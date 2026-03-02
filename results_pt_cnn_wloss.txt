@@ -1,0 +1,8 @@
+Task: pt_cnn_wloss
+Architecture: FusionNet + weighted loss w=max(1,sqrt(d))
+Params: 608,801
+Train R²=0.9468  MAE=0.2240  MAPE=12.7%
+Test  R²=0.9076  MAE=0.2803  MAPE=14.8%
+  d <1  ( 6397): R²=0.9321  MAPE=12.0%
+  d>=1  ( 3105): R²=0.7785  MAPE=20.7%
+Runtime: 127.4s
