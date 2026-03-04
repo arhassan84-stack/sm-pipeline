@@ -1,0 +1,10 @@
+Task: pt_wavenet_stride2
+Architecture: WaveNet1D stride=2 channels=128 dilations=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+  Sequence length after proj: 2048 (2x finer than stride=4)
+  Receptive field: 4092 original lags
+Params: 685,953
+Train R²=0.9436  MAE=0.2278  MAPE=11.9%
+Test  R²=0.9320  MAE=0.2405  MAPE=12.8%
+  d <1  ( 6397): R²=0.9456  MAPE=10.1%
+  d>=1  ( 3105): R²=0.8371  MAPE=18.2%
+Runtime: 3558.6s

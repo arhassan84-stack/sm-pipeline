@@ -1,0 +1,9 @@
+Task: pt_wavenet_s5
+Architecture: WaveNet1D channels=128 dilations=[1, 2, 4, 8, 16, 32, 64, 128] seed=5
+  Receptive field: 2040 original lags
+Params: 587,905
+Train R²=0.9436  MAE=0.2271  MAPE=12.1%
+Test  R²=0.9231  MAE=0.2552  MAPE=13.6%
+  d <1  ( 6397): R²=0.9343  MAPE=10.9%
+  d>=1  ( 3105): R²=0.8158  MAPE=19.2%
+Runtime: 1258.5s
