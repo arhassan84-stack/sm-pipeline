@@ -1,0 +1,114 @@
+Multi-dt WaveNet Architectures: Options A, B, C, D
+====================================================
+
+Context
+-------
+The multi-dt dataset contains 3 correlated intensity traces per simulation,
+all derived from the same underlying molecular trajectory:
+  - dt = 0.1 ms  →  40,960 bins
+  - dt = 0.5 ms  →   8,192 bins
+  - dt = 1.0 ms  →   4,096 bins
+
+Each simulation thus has 3 traces of different lengths. The challenge is how
+to feed all 3 into a neural network.
+
+Features: 302-dim extracted independently from each dt, then concatenated
+→ 906-dim feature vector used by all 4 options.
+
+Augmentation (consistent across options):
+  - Same amplitude scale factor U[0.85, 1.15] applied to all 3 traces
+  - Same fractional temporal shift (±1/32 of total duration) for all 3 traces
+    (dt010: ±1280 bins, dt050: ±256 bins, dt100: ±128 bins)
+  - Independent Gaussian noise (σ=0.03) added to each trace separately
+
+
+Option A — Multi-channel (3 × 4096)
+-------------------------------------
+dt010 and dt050 are downsampled to 4096 bins via average pooling (factors ×10
+and ×2 respectively), then stacked with dt100 as a (3, 4096) tensor.
+
+The WaveNet input_proj changes from Conv1d(1, ...) → Conv1d(3, ...) to accept
+the 3-channel input. All other architecture components are identical to the
+original single-dt WaveNet.
+
+  Parameters: ~7M  (same as single-dt model)
+  Pros: lightest model; all 3 dt values processed jointly from the first layer
+  Cons: downsampling dt010 discards fine temporal detail (factor ×10 pooling)
+  Label: wavenet_multidt_A
+
+
+Option B — 3 independent branches
+------------------------------------
+Three separate WaveNet1D backbones (each with channels=256), one per dt value,
+each processing traces at their native resolution. AdaptiveAvgPool1d(1) gives
+a 256-dim embedding per branch. The three embeddings are concatenated (768-dim)
+and fed into a shared head.
+
+  Architecture:
+    branch010: WaveNet(channels=256) → GAP → 256-dim
+    branch050: WaveNet(channels=256) → GAP → 256-dim
+    branch100: WaveNet(channels=256) → GAP → 256-dim
+    feat_branch: Linear(906→256→128)
+    head: Linear(768+128=896 → 512 → 128 → 1)
+
+  Parameters: ~21M  (3× the single-dt model)
+  Pros: each dt gets its own specialized filters at full resolution; most
+        expressive; can learn dt-specific temporal features independently
+  Cons: largest model; slowest to train; may overfit with limited data
+  Label: wavenet_multidt_B
+
+
+Option C — Shared-weight branches
+------------------------------------
+One WaveNet1D backbone (channels=256) is called three times, once per dt trace
+at its native resolution. Shared weights force the network to learn temporal
+features that generalize across time resolutions. The 3 embeddings are
+concatenated and fed to the same head structure as Option B.
+
+  Architecture:
+    backbone (shared): WaveNet(channels=256) → GAP → 256-dim  [called 3×]
+    feat_branch: Linear(906→256→128)
+    head: Linear(768+128=896 → 512 → 128 → 1)
+
+  Parameters: ~7M  (same as single-dt model)
+  Pros: parameter-efficient; weight sharing acts as regularization; forces
+        learning of resolution-invariant temporal features
+  Cons: shared weights may be a bottleneck if dt010 and dt100 require
+        fundamentally different filters
+  Label: wavenet_multidt_C
+
+
+Option D — End-to-end concatenation
+--------------------------------------
+All 3 traces are z-scored independently, then literally concatenated into a
+single 1D signal:
+  [dt010 (40,960 bins) | dt050 (8,192 bins) | dt100 (4,096 bins)]
+  → 53,248 bins total
+
+A single WaveNet1D with AdaptiveAvgPool1d(1) processes the full concatenated
+signal. The network must learn on its own that the signal has distinct segments.
+
+  Parameters: ~7M  (same as single-dt model)
+  Pros: simplest implementation; the network can potentially learn
+        cross-segment correlations (e.g., comparing burst timing across dts)
+  Cons: the boundary between dt segments is artificial; the network may not
+        easily learn to separate the three dt regions without explicit guidance;
+        the 53k input is the longest of all options
+  Label: wavenet_multidt_D
+
+
+Summary Table
+-------------
+Option  Architecture              Input shape    Params   Notes
+------  ------------------------  -------------  -------  ----------------------
+A       3-channel (downsampled)   (3, 4096)      ~7M      Loses fine dt010 detail
+B       3 independent branches    3× native res  ~21M     Most expressive
+C       Shared-weight branches    3× native res  ~7M      Best regularization
+D       Concatenated signal       (53248,)       ~7M      Simplest, naïve fusion
+
+All jobs submitted 2026-03-12:
+  cache_multidt : 55803994  (128G, 16h — shared split for all 3 dts)
+  wn_multidt_A  : 55803995  (128G, 1-day,  after cache)
+  wn_multidt_B  : 55803996  (256G, 2-day,  after cache)
+  wn_multidt_C  : 55803997  (256G, 2-day,  after cache)
+  wn_multidt_D  : 55803998  (256G, 2-day,  after cache)

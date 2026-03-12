@@ -1,0 +1,266 @@
+================================================================================
+FCS DIFFUSION PREDICTION — MODEL ARCHITECTURE GUIDE
+================================================================================
+Last updated: 2026-03-12
+
+This guide describes every architecture used in this project, grouped by family.
+All models predict log(D) from FCS intensity traces and/or hand-crafted features.
+Target: D (µm²/s), d <= 10, log(D) during training, exp() for final predictions.
+
+================================================================================
+1. FEATURE PIPELINE
+================================================================================
+
+Raw input: intensity trace I(t) — photon counts/s, 4096 bins at dt=1ms (unless noted)
+
+Feature extraction produces 302 features per trace (build_cache_dt.py):
+
+  Group                    Dim   Description
+  -----------------------  ----  ------------------------------------------------
+  Basic statistics           8   mean, variance, Mandel Q, skewness, kurtosis,
+                                  kappa1, kappa2, kappa2_norm
+  G0 + half-decay            2   G0 = var/mean², lag where G < G0/2
+  ACF (log-spaced lags)     32   autocorrelation at 32 log-spaced lags via FFT
+  Scattering transform     136   J=8, Q=2 Morlet wavelets — S1 (16) + S2 (120)
+  PSD (log-spaced bins)     32   power spectral density via FFT, 32 bins
+  Transit fractions          5   fraction of trace >= {80,60,40,20,10}% of peak
+  ---- 212 features above (base cache) ----
+  Exponential ACF fit        3   A, tau_D, RMSE (log-space OLS)
+  Stretched-exp ACF fit      3   tau_D, beta, RMSE (log-log OLS)
+  ACF decay percentiles      4   lag where G = {90,75,25,10}% of G0, interpolated
+  Short linear lags         10   ACF at lags 5,8,10,11,13,14,16,17,18,20
+  Threshold crossing stats  20   (n_bursts, max_burst, std_burst, mean_inter) × 5
+  Multi-scale segment stats 15   (mean_var, std_mean, cv_var) × windows [32,64,128,512,1024]
+  Higher-order cumulants     2   kappa3_norm, kappa4_norm
+  Multi-tau variance        10   kappa2_norm(T) at T=2,4,...,1024
+  Non-stationarity           4   mean_ratio, var_ratio, slope_norm, corr_halves
+  ---- 283 features above ----
+  ACF log-ratio features    19   log(G(τ+1)/G(τ)) for lags 1..20
+  ---- 302 features total ----
+
+For multi-dt models: 302 features extracted independently per dt → concatenated.
+  3 × 302 = 906-dim feature vector.
+
+================================================================================
+2. FEATURE-ONLY MODELS (no raw traces)
+================================================================================
+
+MLP (PyTorch, BN+Dropout)
+  Input:  302 features
+  Arch:   Linear(302→2048) → BN → ReLU → Dropout(0.1)
+          → (1024 → BN → ReLU → Dropout) × 3 → (512→256→128) → Linear→1
+  Params: ~3.2M
+  Scheduler: CosineAnnealingWarmRestarts(T0=50)
+
+ResNet-MLP (PyTorch)
+  Input:  302 features
+  Arch:   Embedding linear(302→512) + 6 residual blocks (512-dim, BN, Dropout)
+          + Linear(512→1)
+  Params: ~3.3M
+  Scheduler: CosineAnnealingWarmRestarts(T0=50)
+
+FT-Transformer (FTT)
+  Input:  302 features, tokenized to E-dim embeddings
+  Arch:   Each feature → Linear(1→E) + bias token; prepend [CLS] token (303 total)
+          → L-layer transformer encoder (multi-head self-attention, FFN)
+          → CLS token → Linear→1
+  Variants:
+    ftt (orig):  E=64,  4 layers, 4 heads, dim_ff=256, dropout=0.1  →  236k params
+    ftt_large:   E=128, 6 layers, 8 heads, dim_ff=512, dropout=0.15 → 1.26M params
+    ftt_v2:      E=64,  6 layers, 4 heads, dim_ff=256, dropout=0.2  →  336k params
+  Key property: self-attention learns which feature interactions matter per sample.
+
+================================================================================
+3. TRACE + FEATURE FUSION MODELS
+================================================================================
+
+CNN Fusion (FusionNet)
+  Trace branch:
+    Conv1d(1,32,k=8) → MaxPool(2) → Conv1d(32,64,k=8) → MaxPool(2)
+    → Conv1d(64,128,k=8) → AdaptiveAvgPool(128) → Flatten → Linear(16384→512)
+  Feature branch:
+    Linear(302→256) → BN → ReLU → Linear(256→128)
+  Head:  concat(512+128=640) → Linear(640→256) → Linear(256→1)
+  Params: ~570k
+  Augmentation: none initially; later variants use seed diversity (s123, s777)
+  Variants: cnn, cnn_s123, cnn_s777, cnn_ms (multi-scale k=8/32/128)
+
+WaveNet1D
+  Trace branch:
+    Conv1d(1, C, k=16, stride=4, pad=6) → BN → ReLU   [input projection]
+    → 8× DilatedResBlock(C, d) for d in [1,2,4,8,16,32,64,128]
+      each block: Conv1d(C,C,k=3,dil=d,pad=d) → BN → ReLU + residual
+    → AdaptiveAvgPool1d(1) → squeeze → C-dim trace embedding
+  Feature branch:
+    Linear(302→256) → BN → ReLU → Dropout(0.1) → Linear(256→128) → BN → ReLU
+  Head:
+    Linear(C+128 → 256) → BN → ReLU → Dropout(0.1) → Linear(256→64) → ReLU → Linear(64→1)
+  Params: ~7M at C=256 (wide),  ~2.1M at C=128
+  Receptive field: sum(2*d for d in dilations) * stride4 = 2040 lags at stride=4
+  Key property: AdaptiveAvgPool1d(1) makes architecture length-agnostic.
+  Variants (all C=128 unless noted):
+    wavenet:     dilations=[1,2,4,8,16,32,64,128],   RF=2040 lags
+    wavenet_s2:  seed=2 (best standalone: MAPE=13.3%)
+    wavenet_s3:  seed=3
+    wavenet_alt: dilations=[1,2,4,8,16,32,64,128,256,512], RF=8184 lags (full trace)
+    wavenet_wide_aug: C=256, DataLoader-parallel augmentation, CosineAnnealingWarmRestarts(T0=30)
+
+WaveNet wide (wavenet_wide_aug) — Current best single-dt model
+  Same as WaveNet1D above with:
+    C = 256 (wider channels)
+    Feature dim: 302 (or dt-specific, see dt sweep)
+    DataLoader augmentation: amplitude scale U[0.85,1.15] + noise N(0,0.03)
+                             + cyclic roll ±AUG_SHIFT (AUG_SHIFT = N_BINS/32)
+    Scheduler: CosineAnnealingWarmRestarts(T0=30)
+    Optimizer: AdamW, LR=5e-4, weight_decay=1e-4
+    Batch: 128, DataLoader workers=4, persistent_workers=True, prefetch_factor=2
+  dt=1ms results: MAPE=12.34%  d<1=9.79%  d>=1=17.60%  R²=0.9517
+
+Hybrid WaveNet+FTT (wavenet_ftt)
+  Trace branch:  WaveNet1D(C=128) → GAP → 128-dim
+  Feature branch: FTT(E=64, 4 layers) → CLS token → 64-dim
+  Head:  concat(128+64=192) → Linear(192→128) → ReLU → Linear(128→64) → ReLU → Linear(64→1)
+  Params: 668k
+  Note: weaker standalone (14.5%) due to shared LR suboptimal for transformer branch;
+        high ensemble diversity gives it the largest NNLS weight in 14-model ensemble.
+
+WaveNet NPE/MDN (wavenet_wide_npe)
+  Same backbone as wavenet_wide_aug but replaces regression head with K=8 Gaussian MDN:
+    context_net: Linear(C+128→256) → BN → ReLU → Dropout → Linear(256→64) → ReLU
+    pi_head, mu_head, lsig_head: each Linear(64→8)
+  Loss: NLL of Gaussian mixture = -log Σ_k π_k N(y; μ_k, σ_k)
+  Warm-started from wavenet_wide_aug checkpoint (86/88 tensors transferred)
+  Outputs: posterior mean E[D], posterior std, 68/95% credible intervals
+  Results: MAPE=12.5%  d<1=10.0%  d>=1=17.5%  median σ=0.139
+
+================================================================================
+4. DT-SWEEP MODELS (single dt, best architecture = wavenet_wide_aug)
+================================================================================
+
+All use WaveNet1D(C=256) + 302 features + DataLoader augmentation.
+N_BINS = round(4096 / dt_ms),  AUG_SHIFT = round(N_BINS/32)
+
+  Model tag       dt (ms)  N_BINS   AUG_SHIFT  Status / MAPE
+  --------------  -------  -------  ---------  --------------------------
+  wavenet_wide    1.0ms    4,096    128        12.34%  d<1=9.79%  d>=1=17.60%
+  wavenet_wide    0.5ms    8,192    256        12.3%   d<1=10.6%  d>=1=15.9%
+  wn_dt025        0.25ms   16,384   512        (training)
+  wn_dt020        0.2ms    20,480   640        (pending)
+  wn_dt040        0.4ms    10,240   320        (training)
+  wn_dt080        0.8ms    5,120    160        (training)
+  wn_dt010        0.1ms    40,960   1,280      (pending, cache building)
+
+================================================================================
+5. MULTI-DT MODELS (3 correlated traces per simulation)
+================================================================================
+
+Dataset: sims_multidt_noise0 — 300k simulations × 3 dt values (0.1, 0.5, 1.0 ms)
+  Same underlying molecular trajectory at dt_min=0.1ms; subsampled for coarser dts.
+  dt010: 40,960 bins  |  dt050: 8,192 bins  |  dt100: 4,096 bins
+
+Features: 302 per dt, concatenated → 906-dim feature vector for all options.
+
+Augmentation (consistent across all 3 traces):
+  - Same amplitude scale factor U[0.85, 1.15] applied to all 3 traces
+  - Independent Gaussian noise (σ=0.03) per trace
+  - Same fractional temporal shift (±1/32 of total duration):
+      dt010: ±1280 bins,  dt050: ±256 bins,  dt100: ±128 bins
+
+────────────────────────────────────────────────────────────────────────────────
+Option A — wavenet_multidt_A: Multi-channel (downsampled to 4096)
+────────────────────────────────────────────────────────────────────────────────
+Preprocessing: dt010 averaged by factor ×10 → 4096; dt050 averaged by factor ×2 → 4096.
+Input tensor: (B, 3, 4096) — 3 channels, each 4096 bins.
+Architecture: WaveNet1D with input_proj changed to Conv1d(3, C, k=16, stride=4) instead
+              of Conv1d(1, ...). All 8 DilatedResBlocks and head unchanged.
+Feature branch: Linear(906→256→128)
+Head: Linear(C+128→256→64→1)
+Params: ~7M
+Pros: lightest; 3 dt values processed jointly from the first layer.
+Cons: dt010 downsampled ×10 loses fine temporal structure.
+
+────────────────────────────────────────────────────────────────────────────────
+Option B — wavenet_multidt_B: 3 independent branches
+────────────────────────────────────────────────────────────────────────────────
+3 separate WaveNet1D backbones, one per dt, each at native resolution.
+  branch010: WaveNet(C=256) on 40,960-bin traces → GAP → 256-dim
+  branch050: WaveNet(C=256) on  8,192-bin traces → GAP → 256-dim
+  branch100: WaveNet(C=256) on  4,096-bin traces → GAP → 256-dim
+  concat: [256, 256, 256] = 768-dim trace embedding
+Feature branch: Linear(906→256→128)
+Head: Linear(768+128=896 → 512 → 128 → 1)
+Params: ~21M (3× single-dt model)
+Pros: each dt gets its own specialized filters at full native resolution; most expressive.
+Cons: largest model; slowest to train; may overfit.
+
+────────────────────────────────────────────────────────────────────────────────
+Option C — wavenet_multidt_C: Shared-weight branches
+────────────────────────────────────────────────────────────────────────────────
+One WaveNet1D backbone (C=256) called 3 times, once per dt trace at native resolution.
+  backbone(t010) → 256-dim,  backbone(t050) → 256-dim,  backbone(t100) → 256-dim
+  concat: 768-dim (same as B)
+Feature branch: Linear(906→256→128)
+Head: Linear(768+128=896 → 512 → 128 → 1)
+Params: ~7M (same as single-dt model)
+Pros: parameter-efficient; weight sharing regularizes; forces learning of
+      resolution-invariant temporal features; AdaptiveAvgPool handles varying lengths.
+Cons: shared weights may bottleneck if dt010 and dt100 require different filters.
+
+────────────────────────────────────────────────────────────────────────────────
+Option D — wavenet_multidt_D: End-to-end concatenation
+────────────────────────────────────────────────────────────────────────────────
+All 3 traces z-scored independently then concatenated as a single 1D signal:
+  [dt010 (40,960) | dt050 (8,192) | dt100 (4,096)] → 53,248 bins total
+Single WaveNet1D(C=256) with AdaptiveAvgPool1d(1) processes the full signal.
+Feature branch: Linear(906→256→128)
+Head: Linear(C+128→256→64→1)
+Params: ~7M
+Pros: simplest; single model; can learn cross-segment correlations.
+Cons: boundary between dt segments is artificial; no explicit guidance about
+      segment boundaries; largest input of all options.
+
+────────────────────────────────────────────────────────────────────────────────
+Multi-dt Summary
+────────────────────────────────────────────────────────────────────────────────
+Option  Architecture              Input shape     Params   MAPE (TBD)
+------  ------------------------  --------------  -------  ----------
+A       3-channel (downsampled)   (B, 3, 4096)    ~7M      pending
+B       3 independent branches   3× native res   ~21M     pending
+C       Shared-weight branches   3× native res   ~7M      pending
+D       Concatenated signal       (B, 53248)      ~7M      pending
+
+Jobs submitted 2026-03-12:
+  cache_multidt : 55803994  (128G, 16h — shared 90/10 split for all 3 dts)
+  wn_multidt_A  : 55803995  (128G, 1-day,  after cache)
+  wn_multidt_B  : 55803996  (256G, 2-day,  after cache)
+  wn_multidt_C  : 55803997  (256G, 2-day,  after cache)
+  wn_multidt_D  : 55803998  (256G, 2-day,  after cache)
+
+================================================================================
+6. ENSEMBLE STRATEGIES
+================================================================================
+
+Geometric mean ensemble:
+  Final prediction = exp(mean([log(pred_1), log(pred_2), ..., log(pred_N)]))
+  Equivalent to geometric mean of individual predictions in D-space.
+  Consistently outperforms arithmetic mean and learned combiners.
+
+Best ensemble (Round 13): 12-model equal-weight geometric mean
+  Members: cnn + cnn_s123 + cnn_s777 + cnn_ms
+         + ftt + ftt_large + ftt_v2
+         + wavenet + wavenet_ftt + wavenet_s2 + wavenet_s3 + wavenet_alt
+  MAPE=13.07%  d<1=10.4%  d>=1=18.5%  R²=0.9224
+
+Weight optimization:
+  scipy.differential_evolution (softmax parametrization) collapses onto dominant model
+  → overfits training distribution. Grid search on test used as oracle upper bound.
+  Optimal oracle weights: CNN-heavy (~50-60% weight on CNN seeds),
+  FTT-secondary (~30-40%), with specific FTT variants preferred over original.
+  Practical conclusion: equal-weight geometric mean is near-optimal and more robust.
+
+NNLS meta-learner:
+  Non-negative least squares on held-out train predictions.
+  Consistently zeroes FTT weights; up-weights CNN seeds and wavenet_ftt.
+  Gives marginal d>=1 gain (18.8%) but slightly worse overall MAPE vs equal-weight.
+
+================================================================================
