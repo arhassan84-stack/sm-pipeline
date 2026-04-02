@@ -1,0 +1,11 @@
+Task: wavenet_multidt_B
+Architecture: 3 independent WaveNet branches (dt010 AvgPool16→2560bins, dt050 native, dt100) + 906-dim features
+  WaveNetMultiDT_B channels=256 dilations=[1, 2, 4, 8, 16, 32, 64, 128]
+  Speedups: AvgPool16 on dt010 | CUDA streams | AMP
+Params: 5,544,577
+Train: 257044  Test: 28556
+Train R²=0.9627  MAE=0.1804  MAPE=9.5%
+Test  R²=0.9546  MAE=0.1934  MAPE=9.9%
+  d <1  (19140): R²=0.9672  MAPE=8.3%
+  d>=1  ( 9416): R²=0.8882  MAPE=13.3%
+Runtime: 17740.4s

@@ -1,0 +1,10 @@
+Task: wavenet_multidt_B_large
+Architecture: 3 independent WaveNet branches (dt010 native, dt050 native, dt100) + 906-dim features
+  WaveNetMultiDT_B channels=256 dilations=[1, 2, 4, 8, 16, 32, 64, 128]
+Params: 5,544,577
+Train: 771111  Test: 85689
+Train R²=0.9643  MAE=0.1760  MAPE=9.2%
+Test  R²=0.9592  MAE=0.1855  MAPE=9.5%
+  d <1  (57066): R²=0.9711  MAPE=7.8%
+  d>=1  (28623): R²=0.9001  MAPE=12.8%
+Runtime: 66548.9s
