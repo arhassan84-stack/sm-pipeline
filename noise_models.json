@@ -1,0 +1,58 @@
+[
+  {
+    "label":               "wavenet_noise_w2048",
+    "window_ms":           2048,
+    "mape":                999.0,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            6,
+    "requires_acf_features": false,
+    "model_file":          "model_wavenet_noise_w2048.pt",
+    "model_class":         "WaveNetNoise_W",
+    "init_kwargs":         {"channels": 256, "pool010": 8},
+    "raw_stat_mean":       "raw_stat_wavenet_noise_w2048_mean.npy",
+    "raw_stat_std":        "raw_stat_wavenet_noise_w2048_std.npy"
+  },
+  {
+    "label":               "wavenet_noise_w1024",
+    "window_ms":           1024,
+    "mape":                999.0,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            6,
+    "requires_acf_features": false,
+    "model_file":          "model_wavenet_noise_w1024.pt",
+    "model_class":         "WaveNetNoise_W",
+    "init_kwargs":         {"channels": 256, "pool010": 4},
+    "raw_stat_mean":       "raw_stat_wavenet_noise_w1024_mean.npy",
+    "raw_stat_std":        "raw_stat_wavenet_noise_w1024_std.npy"
+  },
+  {
+    "label":               "wavenet_noise_w512",
+    "window_ms":           512,
+    "mape":                999.0,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            6,
+    "requires_acf_features": false,
+    "model_file":          "model_wavenet_noise_w512.pt",
+    "model_class":         "WaveNetNoise_W",
+    "init_kwargs":         {"channels": 256, "pool010": 2},
+    "raw_stat_mean":       "raw_stat_wavenet_noise_w512_mean.npy",
+    "raw_stat_std":        "raw_stat_wavenet_noise_w512_std.npy"
+  },
+  {
+    "label":               "wavenet_noise_w256",
+    "window_ms":           256,
+    "mape":                999.0,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            6,
+    "requires_acf_features": false,
+    "model_file":          "model_wavenet_noise_w256.pt",
+    "model_class":         "WaveNetNoise_W",
+    "init_kwargs":         {"channels": 256, "pool010": 1},
+    "raw_stat_mean":       "raw_stat_wavenet_noise_w256_mean.npy",
+    "raw_stat_std":        "raw_stat_wavenet_noise_w256_std.npy"
+  }
+]
