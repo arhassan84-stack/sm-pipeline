@@ -1,0 +1,92 @@
+[
+  {
+    "label":               "wavenet_multidt_S2",
+    "window_ms":           4096,
+    "mape":                9.7,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            910,
+    "requires_acf_features": true,
+    "channel_affinity":    "S2",
+    "model_file":          "model_wavenet_multidt_S2.pt",
+    "model_class":         "WaveNetMultiDT_S2",
+    "init_kwargs":         {"feat_dim": 910, "channels": 256, "pool010": 16},
+    "scaler_mean":         "scaler_wavenet_multidt_S2_mean.npy",
+    "scaler_scale":        "scaler_wavenet_multidt_S2_scale.npy"
+  },
+  {
+    "label":               "wavenet_multidt_B_large",
+    "window_ms":           4096,
+    "mape":                9.5,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            910,
+    "requires_acf_features": true,
+    "channel_affinity":    "S1",
+    "model_file":          "model_wavenet_multidt_B_large.pt",
+    "model_class":         "WaveNetMultiDT_B",
+    "init_kwargs":         {"feat_dim": 910, "channels": 256, "pool010": 1},
+    "scaler_mean":         "scaler_wavenet_multidt_B_large_mean.npy",
+    "scaler_scale":        "scaler_wavenet_multidt_B_large_scale.npy",
+    "conformal_intervals": {
+      "coverage":   0.90,
+      "note":       "Global q — stratify by pad_fraction on cluster with intensity cache",
+      "pad_strata": [
+        {"pad_max": 0.25, "q_log10": 0.0878},
+        {"pad_max": 0.50, "q_log10": 0.0878},
+        {"pad_max": 0.75, "q_log10": 0.0878},
+        {"pad_max": 1.00, "q_log10": 0.0878}
+      ]
+    }
+  },
+  {
+    "label":               "wavenet_multidt_B",
+    "window_ms":           4096,
+    "mape":                9.9,
+    "requires_raw":        true,
+    "dt_channels":         [0.1, 0.5, 1.0],
+    "feat_dim":            910,
+    "requires_acf_features": true,
+    "channel_affinity":    "S1",
+    "model_file":          "model_wavenet_multidt_B.pt",
+    "model_class":         "WaveNetMultiDT_B",
+    "init_kwargs":         {"feat_dim": 910, "channels": 256, "pool010": 16},
+    "scaler_mean":         "scaler_wavenet_multidt_B_mean.npy",
+    "scaler_scale":        "scaler_wavenet_multidt_B_scale.npy",
+    "conformal_intervals": {
+      "coverage":   0.90,
+      "note":       "Global q — stratify by pad_fraction on cluster with intensity cache",
+      "pad_strata": [
+        {"pad_max": 0.25, "q_log10": 0.0917},
+        {"pad_max": 0.50, "q_log10": 0.0917},
+        {"pad_max": 0.75, "q_log10": 0.0917},
+        {"pad_max": 1.00, "q_log10": 0.0917}
+      ]
+    }
+  },
+  {
+    "label":               "pt_wavenet_wide_aug_dt050",
+    "window_ms":           4096,
+    "mape":                12.3,
+    "requires_raw":        true,
+    "dt_channels":         [0.5],
+    "feat_dim":            303,
+    "requires_acf_features": true,
+    "channel_affinity":    "S1",
+    "model_file":          "model_pt_wavenet_wide_aug_dt050.pt",
+    "model_class":         "WaveNet1D",
+    "init_kwargs":         {"feat_dim": 303, "channels": 256},
+    "scaler_mean":         "scaler_pt_wavenet_wide_aug_dt050_mean.npy",
+    "scaler_scale":        "scaler_pt_wavenet_wide_aug_dt050_scale.npy",
+    "conformal_intervals": {
+      "coverage":   0.90,
+      "note":       "Global q — stratify by pad_fraction on cluster with intensity cache",
+      "pad_strata": [
+        {"pad_max": 0.25, "q_log10": 0.1127},
+        {"pad_max": 0.50, "q_log10": 0.1127},
+        {"pad_max": 0.75, "q_log10": 0.1127},
+        {"pad_max": 1.00, "q_log10": 0.1127}
+      ]
+    }
+  }
+]
